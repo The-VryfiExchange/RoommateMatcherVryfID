@@ -1295,6 +1295,23 @@ function initDrag(id){
   card.addEventListener('touchstart',onStart,{passive:true});document.addEventListener('touchmove',onMove,{passive:true});document.addEventListener('touchend',onEnd);
 }
 
+/* ── EMAIL NOTIFICATIONS via /api/notify ── */
+function notifyByEmail(recipientUid, type, messageText){
+  // Look up recipient email from realUsers or conversations
+  const recipient = realUsers.find(function(u){return String(u.id)===String(recipientUid);});
+  if(!recipient||!recipient.email) return;
+  fetch('/api/notify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      to: recipient.email,
+      senderName: myProfile.name||'Someone',
+      type: type,
+      message: messageText||''
+    })
+  }).catch(function(e){console.warn('notify failed',e);});
+}
+
 function handleConnect(id,e){
   if(e&&e.stopPropagation) e.stopPropagation();
   id=String(id);
@@ -1303,6 +1320,7 @@ function handleConnect(id,e){
   if(matchStates[id]==='messaging'){switchView('messages');openThread(id);return;}
   matchStates[id]='messaging';
   startConversation(id).catch(err=>toast('Could not start the chat: '+((err&&err.message)||err)));
+  notifyByEmail(id, 'connect');
   renderMatches();
   switchView('messages');
   openThread(id);
@@ -1632,6 +1650,7 @@ function sendMsg(id){
     lastText:text, lastFrom:myUid,
     updatedAt:firebase.firestore.FieldValue.serverTimestamp()
   },{merge:true}).then(function(){
+    notifyByEmail(id, 'message', text);
     return ref.collection('messages').add({
       from:myUid, text:text, createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
