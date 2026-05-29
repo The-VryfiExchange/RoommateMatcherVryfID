@@ -1752,18 +1752,22 @@ function signOutUser(){
 }
 
 /* ── LANDING ↔ APP transition ── */
+let userNavigatedToAuth=false;
 function goToAuth(mode){
+  userNavigatedToAuth=true;
   document.getElementById('view-landing').classList.remove('active');
   document.getElementById('app-nav').style.display='';
   renderAuthBody(mode||'signin');
   forceView('auth');
 }
 function showLanding(){
+  userNavigatedToAuth=false;
   document.getElementById('view-landing').classList.add('active');
   document.getElementById('app-nav').style.display='none';
   document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
 }
 function enterApp(){
+  userNavigatedToAuth=false;
   document.getElementById('view-landing').classList.remove('active');
   document.getElementById('app-nav').style.display='';
 }
@@ -1912,7 +1916,7 @@ function boot(){
       matchStates={}; activeThread=null; friends=[];
       showNavUser(false);
       const tabs=document.getElementById('nav-tabs'); if(tabs) tabs.style.display='none';
-      showLanding();
+      if(!userNavigatedToAuth) showLanding();
     }
   });
 }
