@@ -467,7 +467,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<!-- Storage removed — photos stored as compressed base64 in Firestore -->
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
@@ -488,12 +488,11 @@ const firebaseConfig = {
 
 /* ── FIREBASE INIT ── */
 const FIREBASE_READY = !String(firebaseConfig.apiKey).includes("PASTE");
-let auth=null, db=null, storage=null;
+let auth=null, db=null;
 if(FIREBASE_READY){
   firebase.initializeApp(firebaseConfig);
   auth=firebase.auth();
   db=firebase.firestore();
-  storage=firebase.storage();
 }
 
 /* ── STATE ── */
@@ -842,11 +841,24 @@ function handlePhotoPick(input){
   const file=input.files&&input.files[0];
   if(!file) return;
   if(file.size>5*1024*1024){alert('That image is larger than 5MB — please choose a smaller one.');input.value='';return;}
-  pendingPhotoFile=file;
-  const url=URL.createObjectURL(file);
-  myProfile.photoURL=url; // local preview; replaced with the Storage URL after upload
-  const pv=document.getElementById('ob-photo-preview');
-  if(pv) pv.innerHTML=`<img src="${url}">`;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const max=200,w=img.width,h=img.height;
+      const scale=Math.min(max/w,max/h,1);
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      const dataURL=canvas.toDataURL('image/jpeg',0.7);
+      myProfile.photoURL=dataURL;
+      pendingPhotoFile=null;
+      const pv=document.getElementById('ob-photo-preview');
+      if(pv) pv.innerHTML='<img src="'+dataURL+'">';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function renderOB(){
@@ -1693,13 +1705,6 @@ function saveMyProfile(){
     data.tags=buildTags(data);
     return db.collection('users').doc(myUid).set(data,{merge:true}).then(refreshInviteUI);
   };
-  if(pendingPhotoFile&&storage){
-    const ref=storage.ref('avatars/'+myUid+'/profile_'+Date.now());
-    return ref.put(pendingPhotoFile)
-      .then(function(snap){return snap.ref.getDownloadURL();})
-      .then(function(url){myProfile.photoURL=url;pendingPhotoFile=null;return writeDoc();})
-      .catch(function(e){console.warn('photo upload failed',e);toast('Photo upload failed — saving your profile without it for now.');return writeDoc();});
-  }
   return writeDoc();
 }
 
