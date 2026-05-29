@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cornsworth — Find Your Roommate</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F8F6F1;--bg2:#F0EDE5;--bg3:#E8E3D8;--surface:#FFF;
+  --text:#1A1814;--text2:#6B6760;--text3:#A8A49C;
+  --border:rgba(26,24,20,.1);--border2:rgba(26,24,20,.06);
+  --green:#3D7A5A;--green-l:#EBF4EE;--green-m:#B8D9C4;
+  --rust:#C0502A;--rust-l:#FAF0EB;--rust-m:#F0C0A8;
+  --navy:#1E3A5F;--navy-l:#E8EEF5;
+  --gold:#A07830;--gold-l:#FAF4E8;
+  --violet:#6B3FA0;--violet-l:#F2EDFB;
+  --r:16px;--rs:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:300;gap:12px;}
+.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;cursor:pointer;white-space:nowrap;}
+.logo span{color:var(--rust);}
+.nav-tabs{display:flex;gap:3px;flex-wrap:wrap;}
+.nav-tab{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all .18s;font-family:'Plus Jakarta Sans',sans-serif;}
+.nav-tab:hover{color:var(--text);background:var(--bg2);}
+.nav-tab.active{background:var(--text);color:#fff;}
+.nav-tab.locked{opacity:.35;cursor:not-allowed;}
+.notif-dot{width:6px;height:6px;border-radius:50%;background:var(--rust);display:inline-block;margin-left:4px;vertical-align:middle;}
+
+/* VIEWS */
+.view{display:none;flex:1;}
+.view.active{display:flex;flex-direction:column;}
+
+/* ═══════════════ PROFILE FORM ═══════════════ */
+.ob-wrap{max-width:660px;margin:0 auto;padding:40px 24px 80px;width:100%;}
+.ob-eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.ob-title{font-family:'Playfair Display',serif;font-size:clamp(28px,5vw,44px);font-weight:400;line-height:1.1;letter-spacing:-.5px;margin-bottom:8px;}
+.ob-title em{font-style:italic;color:var(--rust);}
+.ob-sub{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:32px;max-width:500px;}
+.ob-progress{display:flex;align-items:center;margin-bottom:28px;}
+.ob-step{display:flex;align-items:center;flex:1;}
+.ob-step-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text3);transition:all .3s;flex-shrink:0;}
+.ob-step.done .ob-step-circle{background:var(--green);border-color:var(--green);color:#fff;}
+.ob-step.active .ob-step-circle{background:var(--text);border-color:var(--text);color:#fff;}
+.ob-step-line{flex:1;height:2px;background:var(--border);margin:0 3px;}
+.ob-step.done .ob-step-line{background:var(--green-m);}
+.ob-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px;box-shadow:0 2px 16px rgba(26,24,20,.06);animation:up .35s ease both;}
+.ob-card-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:400;margin-bottom:4px;}
+.ob-card-sub{font-size:13px;color:var(--text2);margin-bottom:22px;}
+.f{margin-bottom:18px;}
+.f-label{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--text);margin-bottom:7px;}
+.f-hint{font-size:11px;color:var(--text3);font-weight:400;}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:6px;}
+.opts.two{grid-template-columns:1fr 1fr;}
+.opts.three{grid-template-columns:1fr 1fr 1fr;}
+.opt{padding:8px 11px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;}
+.opt:hover{border-color:var(--text3);color:var(--text);}
+.opt.on{border-color:var(--rust);background:var(--rust-l);color:var(--rust);font-weight:600;}
+.db-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text3);transition:all .2s;font-family:'Plus Jakarta Sans',sans-serif;}
+.db-btn.on{color:var(--rust);border-color:var(--rust);background:var(--rust-l);}
+.db-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.slider-row{display:flex;align-items:center;gap:12px;}
+.slider-row input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--bg3);border-radius:2px;outline:none;}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--rust);border:3px solid #fff;box-shadow:0 0 0 1.5px var(--rust);cursor:pointer;}
+.slider-val{min-width:56px;text-align:right;font-size:14px;font-weight:600;}
+.sep{border:none;border-top:1px solid var(--border2);margin:18px 0;}
+.btn-row{display:flex;gap:9px;justify-content:flex-end;margin-top:4px;}
+.btn{padding:10px 22px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;border:none;}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--text3);color:var(--text);}
+.btn-primary{background:var(--text);color:#fff;}
+.btn-primary:hover{background:#333;transform:translateY(-1px);}
+
+/* ═══════════════ MATCHES VIEW ═══════════════ */
+.matches-wrap{max-width:1100px;margin:0 auto;padding:28px 28px 80px;width:100%;}
+.matches-header{margin-bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.matches-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:400;letter-spacing:-.3px;}
+.matches-title em{font-style:italic;color:var(--rust);}
+.matches-sub{font-size:13px;color:var(--text2);margin-top:3px;}
+/* view toggle */
+.view-toggle{display:flex;background:var(--bg2);border-radius:10px;padding:3px;gap:2px;}
+.vt-btn{padding:6px 14px;border-radius:8px;border:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);transition:all .18s;}
+.vt-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(26,24,20,.1);}
+.filter-row{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.f-chip{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text3);transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;}
+.f-chip:hover{color:var(--text);border-color:var(--text3);}
+.f-chip.on{background:var(--text);color:#fff;border-color:var(--text);}
+.f-count{margin-left:auto;font-size:12px;color:var(--text3);}
+/* category filter pills */
+.cat-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.cat-pill{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid transparent;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;}
+.cat-pill.active{border-color:currentColor;}
+
+/* CHART MODE */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(296px,1fr));gap:16px;}
+.mcard{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:box-shadow .22s,transform .22s;animation:up .4s ease both;}
+.mcard:hover{box-shadow:0 8px 28px rgba(26,24,20,.11);transform:translateY(-2px);}
+@keyframes up{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.mcard:nth-child(1){animation-delay:.04s}.mcard:nth-child(2){animation-delay:.08s}.mcard:nth-child(3){animation-delay:.12s}.mcard:nth-child(4){animation-delay:.16s}.mcard:nth-child(5){animation-delay:.2s}.mcard:nth-child(6){animation-delay:.24s}
+.mcard-top-band{height:5px;}
+.mcard-body{padding:18px;}
+.mcard-row1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.m-avatar{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.m-info{flex:1;padding-left:10px;}
+.m-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:400;line-height:1.2;}
+.m-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.score-pill{display:flex;flex-direction:column;align-items:center;background:var(--bg);border-radius:var(--rs);padding:5px 9px;border:1px solid var(--border2);}
+.score-big{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;line-height:1;}
+.score-lbl{font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--text3);text-transform:uppercase;margin-top:1px;}
+.m-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.mtag{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;}
+.mtag-g{background:var(--green-l);color:var(--green);}
+.mtag-r{background:var(--rust-l);color:var(--rust);}
+.mtag-n{background:var(--bg2);color:var(--text2);}
+.mtag-gold{background:var(--gold-l);color:var(--gold);}
+.mtag-v{background:var(--violet-l);color:var(--violet);}
+.m-bars{margin-bottom:12px;}
+.mbar-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.mbar-lbl{font-size:10px;color:var(--text3);width:54px;font-weight:500;}
+.mbar-track{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.mbar-fill{height:100%;border-radius:2px;transition:width .7s ease;}
+.mbar-val{font-size:10px;color:var(--text3);width:22px;text-align:right;}
+.mcard-footer{display:flex;gap:6px;padding-top:10px;border-top:1px solid var(--border2);}
+.btn-connect{flex:1;padding:8px;border-radius:var(--rs);background:var(--text);color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;}
+.btn-connect:hover{background:#333;}
+.btn-connect.sent{background:var(--green);cursor:default;}
+.btn-connect.msg{background:var(--navy);}
+.btn-skip{width:34px;height:34px;border-radius:var(--rs);background:transparent;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;color:var(--text3);}
+.btn-skip:hover{background:var(--bg2);}
+
+/* CATEGORY BADGE on card */
+.cat-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:8px;}
+
+/* TINDER MODE */
+.tinder-wrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px;width:100%;}
+.tinder-stack{position:relative;width:360px;max-width:100%;height:520px;margin-bottom:24px;}
+.tinder-card{position:absolute;inset:0;background:var(--surface);border-radius:24px;border:1px solid var(--border2);box-shadow:0 8px 40px rgba(26,24,20,.12);overflow:hidden;transform-origin:center bottom;transition:transform .15s ease,box-shadow .15s;cursor:grab;user-select:none;}
+.tinder-card:active{cursor:grabbing;}
+.tinder-card.back1{transform:scale(.95) translateY(10px);z-index:1;}
+.tinder-card.back2{transform:scale(.9) translateY(20px);z-index:0;}
+.tinder-card.top{z-index:2;}
+.tinder-card.flying-right{transition:transform .4s ease,opacity .4s;transform:translateX(140%) rotate(20deg)!important;opacity:0;}
+.tinder-card.flying-left{transition:transform .4s ease,opacity .4s;transform:translateX(-140%) rotate(-20deg)!important;opacity:0;}
+.tc-band{height:8px;}
+.tc-body{padding:24px 24px 18px;}
+.tc-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.tc-avatar{width:60px;height:60px;border-radius:16px;font-size:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tc-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;line-height:1.1;}
+.tc-meta{font-size:13px;color:var(--text3);margin-top:3px;}
+.tc-score-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.tc-score-num{font-family:'Playfair Display',serif;font-size:40px;font-weight:400;line-height:1;letter-spacing:-1px;}
+.tc-score-lbl{font-size:12px;color:var(--text2);}
+.tc-score-verdict{font-size:12px;font-weight:600;}
+.tc-about{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px;}
+.tc-traits{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.tc-trait{background:var(--bg);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--border2);}
+.tc-trait-lbl{font-size:10px;color:var(--text3);margin-bottom:1px;}
+.tc-trait-val{font-size:12px;font-weight:600;}
+/* swipe hint overlay */
+.swipe-hint-right{position:absolute;top:20px;left:20px;background:#22C55E;color:#fff;font-size:18px;font-weight:800;padding:6px 14px;border-radius:8px;border:3px solid #16A34A;opacity:0;transition:opacity .15s;pointer-events:none;transform:rotate(-12deg);}
+.swipe-hint-left{position:absolute;top:20px;right:20px;background:#EF4444;color:#fff;font-size:18px;font-weight:800;padding:6px 14px;border-radius:8px;border:3px solid #DC2626;opacity:0;transition:opacity .15s;pointer-events:none;transform:rotate(12deg);}
+.tinder-actions{display:flex;gap:16px;align-items:center;}
+.ta-btn{width:56px;height:56px;border-radius:50%;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;box-shadow:0 4px 16px rgba(26,24,20,.12);}
+.ta-skip{background:#fff;color:var(--rust);}
+.ta-skip:hover{background:var(--rust-l);transform:scale(1.08);}
+.ta-like{background:var(--text);color:#fff;}
+.ta-like:hover{background:#333;transform:scale(1.08);}
+.ta-super{background:var(--gold-l);color:var(--gold);}
+.ta-super:hover{transform:scale(1.08);}
+.tinder-hint{font-size:12px;color:var(--text3);text-align:center;margin-top:12px;}
+.tinder-done{text-align:center;padding:60px 20px;color:var(--text3);}
+.tinder-done h3{font-family:'Playfair Display',serif;font-size:24px;color:var(--text);margin-bottom:8px;}
+
+/* LOCATION tag */
+.loc-tag{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-top:2px;}
+
+/* ═══════════════ FRIENDS VIEW ═══════════════ */
+.friends-wrap{max-width:800px;margin:0 auto;padding:28px 24px 80px;width:100%;}
+.friends-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;margin-bottom:4px;}
+.friends-title em{font-style:italic;color:var(--rust);}
+.friends-sub{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.6;}
+.friends-section{margin-bottom:32px;}
+.friends-section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.friends-section-title::after{content:'';flex:1;height:1px;background:var(--border2);}
+/* invite card */
+.invite-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:24px;margin-bottom:12px;}
+.code-display{font-family:monospace;font-size:22px;font-weight:700;letter-spacing:.12em;background:var(--bg2);border:1px dashed var(--border);border-radius:var(--rs);padding:14px 20px;text-align:center;color:var(--text);cursor:pointer;transition:background .18s;margin-bottom:10px;}
+.code-display:hover{background:var(--bg3);}
+.code-copied{font-size:12px;color:var(--green);text-align:center;height:16px;}
+.invite-actions{display:flex;gap:8px;}
+.invite-btn{flex:1;padding:10px;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;}
+.invite-btn-primary{background:var(--text);color:#fff;}
+.invite-btn-primary:hover{background:#333;}
+.invite-btn-sec{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
+.invite-btn-sec:hover{background:var(--bg2);}
+/* search */
+.search-box-wrap{display:flex;gap:8px;margin-bottom:16px;}
+.search-box{flex:1;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;}
+.search-box:focus{border-color:var(--text3);}
+.search-btn{padding:10px 18px;border-radius:var(--rs);background:var(--text);color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+/* enter code */
+.enter-code-wrap{display:flex;gap:8px;margin-bottom:8px;}
+.code-inp{flex:1;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:monospace;font-size:16px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;outline:none;color:var(--text);}
+.code-inp:focus{border-color:var(--rust);}
+/* friend row */
+.friend-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);}
+.fr-avatar{width:40px;height:40px;border-radius:11px;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.fr-info{flex:1;}
+.fr-name{font-size:14px;font-weight:600;}
+.fr-meta{font-size:12px;color:var(--text3);margin-top:1px;}
+.fr-score{font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.fr-status{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.fr-status.pending{background:var(--gold-l);color:var(--gold);}
+.fr-status.connected{background:var(--green-l);color:var(--green);}
+.fr-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;}
+.fr-btn:hover{background:var(--bg2);color:var(--text);}
+.fr-btn.primary{background:var(--text);color:#fff;border-color:var(--text);}
+/* search result */
+.search-result{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+
+/* ═══════════════ MESSAGES VIEW ═══════════════ */
+.msgs-wrap{flex:1;display:flex;max-width:1100px;margin:0 auto;width:100%;height:calc(100vh - 53px);}
+.thread-list{width:280px;border-right:1px solid var(--border2);background:var(--surface);overflow-y:auto;flex-shrink:0;}
+.thread-list-header{padding:18px 18px 12px;border-bottom:1px solid var(--border2);}
+.thread-list-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:400;}
+.thread-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background .15s;}
+.thread-item:hover{background:var(--bg);}
+.thread-item.active{background:var(--bg2);}
+.th-avatar{width:38px;height:38px;border-radius:11px;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.th-info{flex:1;min-width:0;}
+.th-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.th-preview{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.th-score{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+.no-threads{padding:36px 16px;text-align:center;color:var(--text3);font-size:13px;line-height:1.6;}
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text3);font-size:14px;}
+.chat-header{padding:14px 22px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:12px;background:var(--surface);}
+.chat-avatar{width:38px;height:38px;border-radius:11px;font-size:17px;display:flex;align-items:center;justify-content:center;}
+.chat-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:400;}
+.chat-score-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;}
+.msg-row{display:flex;gap:8px;align-items:flex-end;}
+.msg-row.mine{flex-direction:row-reverse;}
+.msg-bubble{max-width:72%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;}
+.msg-row.theirs .msg-bubble{background:var(--surface);border:1px solid var(--border2);border-bottom-left-radius:4px;color:var(--text);}
+.msg-row.mine .msg-bubble{background:var(--text);color:#fff;border-bottom-right-radius:4px;}
+.msg-time{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.msg-row.mine .msg-time{text-align:right;}
+.system-msg{text-align:center;font-size:11px;color:var(--text3);padding:3px 0;}
+.chat-input-row{padding:14px 22px;border-top:1px solid var(--border2);display:flex;gap:8px;background:var(--surface);}
+.chat-input{flex:1;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;}
+.chat-input:focus{border-color:var(--text3);}
+.chat-send{padding:10px 18px;border-radius:var(--rs);background:var(--text);color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .25s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:22px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;transform:translateY(18px);transition:transform .3s ease;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-topband{height:7px;border-radius:22px 22px 0 0;}
+.modal-inner{padding:28px;}
+.modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
+.modal-av{width:56px;height:56px;border-radius:15px;font-size:24px;display:flex;align-items:center;justify-content:center;}
+.modal-name{font-family:'Playfair Display',serif;font-size:24px;font-weight:400;letter-spacing:-.3px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-top:2px;}
+.close-x{width:30px;height:30px;border-radius:50%;background:var(--bg2);border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+.score-band-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg);border-radius:var(--rs);margin-bottom:16px;}
+.score-giant{font-family:'Playfair Display',serif;font-size:48px;font-weight:400;line-height:1;letter-spacing:-2px;}
+.score-verdict-lbl{font-size:13px;font-weight:600;margin-bottom:2px;}
+.score-method{font-size:11px;color:var(--text3);}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:16px 0 9px;}
+.trait-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.trait-box{background:var(--bg);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--border2);}
+.trait-box-lbl{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.trait-box-val{font-size:12px;font-weight:600;}
+.modal-footer-btns{display:flex;gap:9px;margin-top:20px;}
+.modal-btn{flex:1;padding:11px;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;}
+.modal-btn-primary{background:var(--text);color:#fff;}
+.modal-btn-primary:hover{background:#333;}
+.modal-btn-primary.sent{background:var(--green);cursor:default;}
+.modal-btn-primary.msg{background:var(--navy);}
+.modal-btn-sec{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
+.modal-btn-sec:hover{background:var(--bg2);}
+
+/* ═══════════════ AUTH SCREEN ═══════════════ */
+#view-auth{align-items:center;justify-content:flex-start;}
+.auth-wrap{max-width:420px;width:100%;margin:0 auto;padding:54px 24px 80px;}
+.auth-brand{font-family:'Playfair Display',serif;font-size:34px;font-weight:400;text-align:center;margin-bottom:4px;}
+.auth-brand span{color:var(--rust);}
+.auth-tag{text-align:center;font-size:13px;color:var(--text2);margin-bottom:30px;line-height:1.6;}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:30px 28px;box-shadow:0 2px 16px rgba(26,24,20,.06);}
+.auth-toggle{display:flex;background:var(--bg2);border-radius:10px;padding:3px;gap:2px;margin-bottom:24px;}
+.auth-toggle button{flex:1;padding:9px;border:none;background:transparent;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;transition:all .18s;}
+.auth-toggle button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(26,24,20,.1);}
+.auth-field{margin-bottom:15px;}
+.auth-field label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.auth-input{width:100%;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+.auth-input:focus{border-color:var(--rust);}
+.auth-submit{width:100%;padding:13px;border-radius:var(--rs);background:var(--text);color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .18s;margin-top:6px;}
+.auth-submit:hover{background:#333;}
+.auth-submit:disabled{opacity:.55;cursor:default;}
+.auth-error{font-size:12.5px;color:var(--rust);min-height:18px;margin-top:10px;line-height:1.5;}
+.auth-note{font-size:11.5px;color:var(--text3);text-align:center;margin-top:18px;line-height:1.6;}
+.nav-user{display:flex;align-items:center;gap:9px;}
+.nav-signout{padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;}
+.nav-signout:hover{background:var(--bg2);color:var(--text);}
+.nav-me-av{width:30px;height:30px;border-radius:9px;font-size:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;background:var(--bg3);color:var(--text2);}
+.nav-me-av img{width:100%;height:100%;object-fit:cover;}
+
+/* ═══════════════ SETUP NOTICE ═══════════════ */
+.setup-card{max-width:560px;margin:54px auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:32px;box-shadow:0 2px 16px rgba(26,24,20,.06);}
+.setup-card h2{font-family:'Playfair Display',serif;font-weight:400;font-size:26px;margin-bottom:10px;}
+.setup-card p{font-size:13.5px;color:var(--text2);line-height:1.7;margin-bottom:12px;}
+.setup-card code{background:var(--bg2);padding:2px 6px;border-radius:5px;font-size:12px;}
+.setup-card ol{margin:0 0 8px 20px;font-size:13.5px;color:var(--text2);line-height:1.8;}
+
+/* ═══════════════ PHOTO UPLOAD ═══════════════ */
+.photo-upload{display:flex;align-items:center;gap:18px;}
+.photo-preview{width:84px;height:84px;border-radius:20px;background:var(--bg2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--text3);overflow:hidden;flex-shrink:0;}
+.photo-preview img{width:100%;height:100%;object-fit:cover;}
+.photo-upload-btn{display:inline-block;padding:9px 16px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;transition:all .18s;}
+.photo-upload-btn:hover{border-color:var(--text3);}
+.photo-hint{font-size:11px;color:var(--text3);margin-top:6px;}
+.auth-textarea{width:100%;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:74px;line-height:1.6;}
+.auth-textarea:focus{border-color:var(--rust);}
+
+/* avatar image fill (applies to all existing avatar classes) */
+.m-avatar img,.tc-avatar img,.modal-av img,.th-avatar img,.chat-avatar img,.fr-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.m-avatar,.tc-avatar,.modal-av,.th-avatar,.chat-avatar,.fr-avatar{overflow:hidden;}
+.sample-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;background:var(--bg3);color:var(--text3);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo" onclick="goHome()">Corns<span>w</span>orth</div>
+  <div class="nav-tabs" id="nav-tabs" style="display:none">
+    <button class="nav-tab active" id="tab-profile" onclick="switchView('profile')">Profile</button>
+    <button class="nav-tab locked" id="tab-matches" onclick="switchView('matches')">Matches</button>
+    <button class="nav-tab locked" id="tab-friends" onclick="switchView('friends')">Friends</button>
+    <button class="nav-tab locked" id="tab-messages" onclick="switchView('messages')">Messages <span id="msg-dot" style="display:none" class="notif-dot"></span></button>
+  </div>
+  <div class="nav-user" id="nav-user" style="display:none">
+    <div class="nav-me-av" id="nav-me-av"></div>
+    <button class="nav-signout" onclick="signOutUser()">Sign out</button>
+  </div>
+</nav>
+
+<!-- AUTH -->
+<div class="view" id="view-auth">
+  <div class="auth-wrap">
+    <div class="auth-brand">Corns<span>w</span>orth</div>
+    <div class="auth-tag">Find a roommate who gets it. Sign in to build your profile and start matching.</div>
+    <div id="auth-body"></div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="view" id="view-profile">
+  <div class="ob-wrap">
+    <div id="ob-hero">
+      <div class="ob-eyebrow">Cornsworth · Alpha</div>
+      <div class="ob-title">Find a roommate who <em>gets it.</em></div>
+      <div class="ob-sub">Answer a few questions about how you live. Our algorithm encodes your lifestyle and ranks every match by Bayesian compatibility — not just vibes.</div>
+    </div>
+    <div id="ob-progress-wrap" style="display:none"><div class="ob-progress" id="ob-progress"></div></div>
+    <div id="ob-form-area"></div>
+  </div>
+</div>
+
+<!-- MATCHES -->
+<div class="view" id="view-matches">
+  <div class="matches-wrap">
+    <div class="matches-header">
+      <div>
+        <div class="matches-title">Your <em>matches</em></div>
+        <div class="matches-sub" id="matches-sub">Ranked by compatibility · Dealbreakers filtered</div>
+      </div>
+      <div class="view-toggle">
+        <button class="vt-btn active" id="vt-chart" onclick="setViewMode('chart')">📊 Chart</button>
+        <button class="vt-btn" id="vt-tinder" onclick="setViewMode('tinder')">🃏 Swipe</button>
+      </div>
+    </div>
+    <!-- category filter -->
+    <div class="cat-row" id="cat-row"></div>
+    <div class="filter-row" id="filter-row">
+      <button class="f-chip on" data-f="all" onclick="setFilter('all',this)">All</button>
+      <button class="f-chip" data-f="high" onclick="setFilter('high',this)">Strong ≥75%</button>
+      <button class="f-chip" data-f="religion" onclick="setFilter('religion',this)">Same religion</button>
+      <button class="f-chip" data-f="wfh" onclick="setFilter('wfh',this)">WFH friendly</button>
+      <button class="f-chip" data-f="budget" onclick="setFilter('budget',this)">Budget match</button>
+      <button class="f-chip" data-f="near" onclick="setFilter('near',this)">📍 Nearby</button>
+      <span class="f-count" id="f-count"></span>
+    </div>
+    <div id="matches-content"></div>
+  </div>
+</div>
+
+<!-- FRIENDS -->
+<div class="view" id="view-friends">
+  <div class="friends-wrap">
+    <div class="friends-title">Friends & <em>invites</em></div>
+    <div class="friends-sub">Bring people you already know into your apartment search. Share your invite code or search by name — friends get a priority boost in your match rankings.</div>
+
+    <div class="friends-section">
+      <div class="friends-section-title">Your invite code</div>
+      <div class="invite-card">
+        <div class="code-display" id="my-code" onclick="copyCode()">—</div>
+        <div class="code-copied" id="code-copied"></div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Share this code with anyone you want to add. When they enter it, you'll both see each other at the top of your matches.</div>
+        <div class="invite-actions">
+          <button class="invite-btn invite-btn-primary" onclick="copyCode()">📋 Copy code</button>
+          <button class="invite-btn invite-btn-sec" onclick="shareLink()">🔗 Share link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-section-title">Enter a friend's code</div>
+      <div class="enter-code-wrap">
+        <input class="code-inp" id="code-inp" placeholder="e.g. CRNSWTH-AB12" maxlength="13" oninput="this.value=this.value.toUpperCase()">
+        <button class="search-btn" onclick="redeemCode()">Connect</button>
+      </div>
+      <div id="code-result" style="font-size:12px;min-height:18px;"></div>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-section-title">Search by name or username</div>
+      <div class="search-box-wrap">
+        <input class="search-box" id="friend-search" placeholder="Search Cornsworth users…" oninput="searchFriends(this.value)">
+      </div>
+      <div id="friend-search-results"></div>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-section-title">Your connections</div>
+      <div id="friends-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MESSAGES -->
+<div class="view" id="view-messages">
+  <div class="msgs-wrap">
+    <div class="thread-list">
+      <div class="thread-list-header"><div class="thread-list-title">Messages</div></div>
+      <div id="thread-items"></div>
+    </div>
+    <div class="chat-area" id="chat-area">
+      <div class="chat-empty"><div style="font-size:32px">💬</div><div>Select a conversation</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-topband" id="modal-topband"></div>
+    <div class="modal-inner" id="modal-inner"></div>
+  </div>
+</div>
+
+<!-- ── FIREBASE SDK (compat build — works with classic script + inline handlers) ── -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   ⬇️  PASTE YOUR FIREBASE CONFIG BELOW  ⬇️
+   Get this from the Firebase console: Project settings → Your apps → Web app.
+   See CORNSWORTH-SETUP.md (next to this file) for full step-by-step instructions.
+   Until you replace the placeholder values, the app shows a setup screen.
+   ═══════════════════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDmEU3iOoBkMjr_iPXRR0q1ImqVPFOHNfM",
+  authDomain: "vryfidroommate.firebaseapp.com",
+  projectId: "vryfidroommate",
+  storageBucket: "vryfidroommate.firebasestorage.app",
+  messagingSenderId: "717305022410",
+  appId: "1:717305022410:web:fb5a38439713a96802f133",
+  measurementId: "G-H9YVXT5S8G"
+};
+
+/* ── FIREBASE INIT ── */
+const FIREBASE_READY = !String(firebaseConfig.apiKey).includes("PASTE");
+let auth=null, db=null, storage=null;
+if(FIREBASE_READY){
+  firebase.initializeApp(firebaseConfig);
+  auth=firebase.auth();
+  db=firebase.firestore();
+  storage=firebase.storage();
+}
+
+/* ── STATE ── */
+let myProfile={}, obStep=0;
+let currentUser=null;            // Firebase auth user
+let myUid=null;                  // shortcut
+let pendingPhotoFile=null;       // File chosen during onboarding, uploaded on submit
+let realUsers=[];                // other registered users loaded from Firestore
+let myConversations=[];          // my live conversation list (from Firestore)
+let msgUnsub=null, threadsUnsub=null; // Firestore listener cleanups
+let matchesFallback=false;       // true when no neighborhood overlap so we're showing fallback profiles
+let previewMode=false;           // true when running without Firebase (just to view the UI)
+const OB_STEPS=['You','Role & Location','Habits','Home','Lifestyle','Finances','Identity'];
+let matchStates={}, conversations={}, activeThread=null, curFilter='all', viewMode='chart', curCatFilter='all';
+let profileComplete=false, tinderIdx=0;
+let friends=[]; // {id, name, emoji, avatarBg, avatarFg, status:'pending'|'connected'}
+
+/* ── NAV ── */
+function switchView(v){
+  if((v==='matches'||v==='friends'||v==='messages')&&!profileComplete) return;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+v).classList.add('active');
+  if(v==='messages') renderThreads();
+  if(v==='friends') renderFriends();
+  if(v==='matches') renderMatches();
+  if(v==='profile'){ if(profileComplete) obStep=0; renderOB(); }
+}
+function goHome(){
+  if(!currentUser) return;                       // logged out → stay on auth screen
+  if(profileComplete){switchView('matches');return;}
+  obStep=0;renderOB();
+}
+function unlockTabs(){['matches','friends','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.remove('locked');});}
+
+/* ── FORM HELPERS ── */
+function P(key,val,multi=false){
+  if(multi){if(!myProfile[key])myProfile[key]=[];const i=myProfile[key].indexOf(val);i>-1?myProfile[key].splice(i,1):myProfile[key].push(val);}
+  else{myProfile[key]=val;}
+  renderOB();
+}
+function DB(key){if(!myProfile.dealbreakers)myProfile.dealbreakers={};myProfile.dealbreakers[key]=!myProfile.dealbreakers[key];renderOB();}
+function isOn(k,v,m=false){return m?(myProfile[k]||[]).includes(v):myProfile[k]===v;}
+function dbOn(k){return !!(myProfile.dealbreakers&&myProfile.dealbreakers[k]);}
+function opts(key,items,multi=false,cls=''){
+  return`<div class="opts ${cls}">${items.map(([v,l])=>`<button class="opt ${isOn(key,v,multi)?'on':''}" onclick="P('${key}','${v}',${multi})">${l}</button>`).join('')}</div>`;
+}
+function dbBtn(key,lbl){return`<button class="db-btn ${dbOn(key)?'on':''}" onclick="DB('${key}')"><span class="db-dot"></span>${dbOn(key)?'✓ Dealbreaker':lbl||'Dealbreaker?'}</button>`;}
+
+/* ── LOCATION NEIGHBORHOODS ──
+   NYC is grouped by borough (object). Other cities are flat arrays.
+   Renderers handle both shapes. */
+const NEIGHBORHOODS={
+  'New York, NY':{
+    'Manhattan':['Alphabet City','Battery Park City','Carnegie Hill','Central Harlem','Chelsea','Chinatown','Civic Center','East Harlem','East Village','Financial District','Flatiron','Gramercy','Greenwich Village','Hamilton Heights','Hell’s Kitchen','Hudson Heights','Hudson Yards','Inwood','Kips Bay','Lenox Hill','Lincoln Square','Little Italy','Lower East Side','Manhattan Valley','Marble Hill','Midtown East','Midtown West','Morningside Heights','Murray Hill','NoHo','NoMad','Nolita','Roosevelt Island','SoHo','Stuyvesant Town','Sutton Place','Theater District','Tribeca','Turtle Bay','Two Bridges','Union Square','Upper East Side','Upper West Side','Washington Heights','West Village','Yorkville'],
+    'Brooklyn':['Bath Beach','Bay Ridge','Bedford-Stuyvesant','Bensonhurst','Bergen Beach','Boerum Hill','Borough Park','Brighton Beach','Brooklyn Heights','Brownsville','Bushwick','Canarsie','Carroll Gardens','Clinton Hill','Cobble Hill','Columbia Street Waterfront','Coney Island','Crown Heights','Cypress Hills','DUMBO','Ditmas Park','Downtown Brooklyn','Dyker Heights','East Flatbush','East New York','East Williamsburg','Flatbush','Flatlands','Fort Greene','Fort Hamilton','Gerritsen Beach','Gowanus','Gravesend','Greenpoint','Greenwood Heights','Kensington','Manhattan Beach','Marine Park','Midwood','Mill Basin','Ocean Hill','Park Slope','Prospect Heights','Prospect Lefferts Gardens','Prospect Park South','Red Hook','Sea Gate','Sheepshead Bay','South Slope','Starrett City','Stuyvesant Heights','Sunset Park','Vinegar Hill','Weeksville','Williamsburg','Windsor Terrace'],
+    'Queens':['Arverne','Astoria','Auburndale','Bayside','Bay Terrace (Queens)','Bayswater','Beechhurst','Bellaire','Belle Harbor','Bellerose','Briarwood','Broad Channel','Cambria Heights','College Point','Corona','Ditmars-Steinway','Douglaston','East Elmhurst','Edgemere','Elmhurst','Far Rockaway','Floral Park','Flushing','Forest Hills','Fresh Meadows','Glen Oaks','Glendale','Hammels','Hillcrest','Hollis','Holliswood','Howard Beach','Hunters Point','Jackson Heights','Jamaica','Jamaica Estates','Jamaica Hills','Kew Gardens','Kew Gardens Hills','Laurelton','Lefrak City','Linden Hill','Little Neck','Long Island City','Malba','Maspeth','Middle Village','Murray Hill (Queens)','Neponsit','North Corona','Oakland Gardens','Ozone Park','Pomonok','Queens Village','Queensboro Hill','Queensbridge','Rego Park','Richmond Hill','Ridgewood','Rochdale Village','Rockaway Beach','Rockaway Park','Rosedale','Saint Albans','South Jamaica','South Ozone Park','Springfield Gardens','Sunnyside','Sunnyside Gardens','Utopia','Whitestone','Woodhaven','Woodside'],
+    'Bronx':['Allerton','Baychester','Bedford Park','Belmont','Bronxdale','Castle Hill','City Island','Claremont','Clason Point','Co-op City','Concourse','Concourse Village','Country Club','Crotona Park East','East Tremont','Eastchester','Edenwald','Edgewater Park','Fieldston','Fordham','Foxhurst','Highbridge','Hunts Point','Kingsbridge','Kingsbridge Heights','Locust Point','Longwood','Melrose','Morris Heights','Morris Park','Morrisania','Mott Haven','Mount Eden','Mount Hope','North Riverdale','Norwood','Olinville','Parkchester','Pelham Bay','Pelham Gardens','Pelham Parkway','Port Morris','Riverdale','Schuylerville','Soundview','South Bronx','Spuyten Duyvil','Throgs Neck','Tremont','Unionport','University Heights','Van Nest','Wakefield','West Farms','Westchester Square','Williamsbridge','Woodlawn'],
+    'Staten Island':['Annadale','Arden Heights','Arlington','Arrochar','Bay Terrace (SI)','Bloomfield','Bulls Head','Castleton Corners','Charleston','Chelsea (SI)','Clifton','Concord','Dongan Hills','Eltingville','Emerson Hill','Fort Wadsworth','Graniteville','Grant City','Grasmere','Great Kills','Greenridge','Grymes Hill','Heartland Village','Howland Hook','Huguenot','Lighthouse Hill','Livingston','Mariners Harbor','Meiers Corners','Midland Beach','New Brighton','New Dorp','New Springville','Oakwood','Old Place','Old Town','Park Hill','Pleasant Plains','Port Ivory','Port Richmond','Prince’s Bay','Randall Manor','Richmond Valley','Richmondtown','Rosebank','Rossville','Saint George','Sandy Ground','Shore Acres','Silver Lake','South Beach','Stapleton','Sunnyside (SI)','Todt Hill','Tompkinsville','Tottenville','Travis','West Brighton','Westerleigh','Willowbrook','Woodrow']
+  },
+  'Los Angeles, CA':{
+    'Westside':['Bel Air','Beverly Crest','Beverlywood','Brentwood','Century City','Cheviot Hills','Culver City','Mar Vista','Pacific Palisades','Palms','Playa Vista','Rancho Park','Sawtelle','Santa Monica','Venice','West LA','West Hollywood (WeHo)','Westwood'],
+    'Hollywood & Central':['Beachwood Canyon','East Hollywood','Fairfax','Hancock Park','Hollywood','Hollywood Hills','Koreatown','Larchmont','Little Armenia','Los Feliz','Melrose','Mid-City','Mid-Wilshire','Miracle Mile','Park La Brea','Sherman Oaks (border)','Silver Lake','Thai Town','Wilshire Center'],
+    'Downtown LA':['Arts District','Bunker Hill','Chinatown','Civic Center','Fashion District','Financial District','Historic Core','Jewelry District','Little Tokyo','Olvera Street','Pico-Union','South Park (DTLA)','Toy District'],
+    'Eastside':['Atwater Village','Boyle Heights','Cypress Park','Eagle Rock','East LA','Echo Park','El Sereno','Glassell Park','Highland Park','Lincoln Heights','Montecito Heights','Mount Washington'],
+    'San Fernando Valley':['Arleta','Burbank','Canoga Park','Chatsworth','Encino','Granada Hills','Lake Balboa','Mission Hills','North Hollywood (NoHo)','Northridge','Pacoima','Panorama City','Porter Ranch','Reseda','Sherman Oaks','Studio City','Sun Valley','Sunland','Sylmar','Tarzana','Toluca Lake','Tujunga','Valley Glen','Valley Village','Van Nuys','West Hills','Winnetka','Woodland Hills'],
+    'South Bay':['El Segundo','Gardena','Hawthorne','Hermosa Beach','Lawndale','Lomita','Manhattan Beach','Palos Verdes Estates','Rancho Palos Verdes','Redondo Beach','Rolling Hills','Torrance'],
+    'South LA':['Baldwin Hills','Crenshaw','Florence','Hyde Park','Inglewood','Jefferson Park','Ladera Heights','Leimert Park','Lynwood','South LA','South Park','View Park-Windsor Hills','Watts','West Adams'],
+    'Harbor':['Harbor City','San Pedro','Terminal Island','Wilmington'],
+    'Northeast & Pasadena':['Altadena','Arcadia','La Crescenta','Monrovia','Montrose','Pasadena','San Marino','Sierra Madre','South Pasadena'],
+    'Eastern Suburbs':['Alhambra','El Monte','Monterey Park','Montebello','Pico Rivera','Rosemead','San Gabriel','South El Monte','Whittier']
+  },
+  'Chicago, IL':{
+    'North Side':['Albany Park','Andersonville','Avondale','Bowmanville','Bucktown','Edgewater','Edgewater Glen','Edison Park','Forest Glen','Galewood','Gladstone Park','Hollywood Park','Irving Park','Jefferson Park','Lakeview','Lakeview East','Lincoln Park','Lincoln Square','Logan Square','Margate Park','North Center','North Park','Norwood Park','Old Irving Park','Old Town','Portage Park','Ravenswood','Ravenswood Manor','Rogers Park','Roscoe Village','Sauganash','Uptown','West Ridge','West Rogers Park','Wrigleyville'],
+    'West Side':['Austin','Belmont Cragin','East Garfield Park','East Village','Fulton Market','Galewood','Hermosa','Humboldt Park','Little Village','Montclare','Near West Side','Noble Square','North Lawndale','Pilsen','River West','South Lawndale','Tri-Taylor','Ukrainian Village','University Village','West Garfield Park','West Loop','West Town','Wicker Park'],
+    'South Side':['Armour Square','Auburn Gresham','Avalon Park','Beverly','Bridgeport','Bronzeville','Burnside','Calumet Heights','Canaryville','Chatham','Chicago Lawn','Chinatown','East Side','Englewood','Fuller Park','Gage Park','Grand Boulevard','Greater Grand Crossing','Hegewisch','Hyde Park','Jackson Park Highlands','Kenwood','Marquette Park','Morgan Park','Mount Greenwood','New City','Oakland','Park Manor','Pullman','Riverdale','Roseland','South Chicago','South Deering','South Loop','South Shore','Washington Heights','Washington Park','West Englewood','West Pullman','Woodlawn'],
+    'Downtown / Loop':['Dearborn Park','Fulton River District','Gold Coast','Lakeshore East','Magnificent Mile','Near North Side','Near South Side','Printer’s Row','River North','Streeterville','The Loop'],
+    'Southwest Side':['Archer Heights','Ashburn','Brighton Park','Clearing','Garfield Ridge','McKinley Park','West Elsdon','West Lawn']
+  },
+  'Houston, TX':{
+    'Inner Loop':['Afton Oaks','Boulevard Oaks','Briargrove','Camp Logan','Cottage Grove','Downtown Houston','EaDo (East Downtown)','Fifth Ward','First Ward','Fourth Ward','Galleria/Uptown','Greater Heights','Greenway Plaza','Heights','Highland Village','Houston Heights','Mid-Main','Midtown','Montrose','Museum District','Neartown','Pasadena Heights','Rice Military','Rice Village','River Oaks','Sixth Ward','Sunset Heights','Third Ward','Tanglewood','Texas Medical Center','Upper Kirby','Washington Avenue Corridor','West University','Woodland Heights'],
+    'West Houston':['Briar Forest','Briargrove Park','Energy Corridor','Memorial','Memorial Villages','Spring Branch','Westchase'],
+    'North Houston':['Acres Home','Aldine','Greater Greenspoint','Independence Heights','Lazybrook/Timbergrove','Near Northside','Northside Village','Oak Forest','Shady Acres','Spring','The Woodlands','Westfield'],
+    'East Houston':['Clear Lake','Deer Park','East End','Greater East End','Magnolia Park','Manchester','Park Place','Pasadena','South Park','Sunnyside'],
+    'South Houston':['Astrodome','Bellaire','Braeswood Place','Crestmont Park','Fondren Southwest','MacGregor','Meyerland','Pearland','Sharpstown','South Main','Westbury','Willow Meadows','Willowbend'],
+    'Southwest':['Alief','Briar Meadow','Chinatown','Fort Bend Houston','Greater Sharpstown','Mission Bend','Sienna Plantation','Sugar Land']
+  },
+  'Philadelphia, PA':{
+    'Center City':['Avenue of the Arts','Chinatown','Fairmount/Art Museum','Logan Square','Midtown Village','Old City','Penn’s Landing','Rittenhouse Square','Society Hill','Spring Garden','Washington Square West'],
+    'South Philadelphia':['Bella Vista','Dickinson Narrows','East Passyunk','Girard Estate','Graduate Hospital','Grays Ferry','Italian Market','Marconi Plaza','Newbold','Packer Park','Passyunk Square','Pennsport','Point Breeze','Queen Village','South Philadelphia','Southwark','Whitman','Wharton'],
+    'North Philadelphia':['Brewerytown','East Falls','Fairhill','Fishtown','Francisville','Hartranft','Hunting Park','Kensington','Ludlow','Manayunk','Nicetown-Tioga','North Central','North Philadelphia','Northern Liberties','Olde Kensington','Olney','Poplar','Port Richmond','Sharswood','Spring Arts','Strawberry Mansion','Temple Area','Yorktown'],
+    'West Philadelphia':['Belmont','Carroll Park','Cedar Park','Cobbs Creek','Garden Court','Haddington','Mantua','Mill Creek','Overbrook','Parkside','Powelton Village','Spruce Hill','University City','Walnut Hill','West Philadelphia','West Powelton','Wynnefield'],
+    'Northwest Philadelphia':['Andorra','Chestnut Hill','East Mount Airy','Germantown','Mount Airy','Roxborough','West Mount Airy','Wissahickon'],
+    'Northeast Philadelphia':['Bridesburg','Burholme','Bustleton','Crescentville','Fox Chase','Frankford','Holmesburg','Juniata','Lawncrest','Mayfair','Northwood','Oxford Circle','Pennypack','Rhawnhurst','Somerton','Tacony','Torresdale','Wissinoming']
+  },
+  'Portland, OR':{
+    'Northwest (NW)':['Forest Park','Goose Hollow','Linnton','Nob Hill (NW 23rd)','Northwest District','Northwest Heights','Pearl District','Old Town/Chinatown','Slabtown'],
+    'Northeast (NE)':['Alameda','Alberta Arts District','Beaumont-Wilshire','Boise','Concordia','Cully','Eliot','Grant Park','Hollywood','Humboldt','Irvington','Kerns','King','Laurelhurst','Lloyd District','Madison South','Roseway','Sabin','Sullivan’s Gulch','Sumner','Vernon','Woodlawn'],
+    'Southeast (SE)':['Brooklyn','Buckman','Creston-Kenilworth','Eastmoreland','Foster-Powell','Hawthorne','Hosford-Abernethy','Ladd’s Addition','Laurelhurst','Lents','Montavilla','Mount Scott-Arleta','Mount Tabor','Powellhurst-Gilbert','Reed','Richmond','Sellwood-Moreland','Sunnyside','Woodstock'],
+    'Southwest (SW)':['Arlington Heights','Bridlemile','Burlingame','Crestwood','Downtown','Hayhurst','Healy Heights','Hillsdale','Homestead','Marshall Park','Multnomah Village','South Burlingame','South Portland','Southwest Hills','Sylvan-Highlands','West Portland Park'],
+    'North':['Arbor Lodge','Bridgeton','Cathedral Park','East Columbia','Hayden Island','Kenton','Overlook','Piedmont','Portsmouth','Saint Johns','University Park']
+  },
+  'Seattle, WA':{
+    'Downtown & Central':['Belltown','Capitol Hill','Cascade','Central District','Chinatown-International District','Denny Triangle','First Hill','Pike Place Market','Pioneer Square','Queen Anne (Lower)','South Lake Union','Yesler Terrace'],
+    'North Seattle':['Ballard','Bitter Lake','Broadview','Crown Hill','Fremont','Greenwood','Haller Lake','Lake City','Loyal Heights','Maple Leaf','Northgate','Olympic Hills','Phinney Ridge','Pinehurst','Ravenna','Roosevelt','Sand Point','Sunset Hill','University District','Victory Heights','Wallingford','Wedgwood'],
+    'West Seattle':['Admiral','Alki','Arbor Heights','Delridge','Fairmount Park','Fauntleroy','Gatewood','Genesee','High Point','Highland Park','Junction','North Admiral','Pigeon Point','Riverview','Roxhill','Seaview','South Park','South Delridge','Westwood'],
+    'Central / South':['Atlantic','Beacon Hill','Brighton','Columbia City','Dunlap','Georgetown','Hillman City','Holly Park','Industrial District','Judkins Park','Leschi','Madrona','Madison Park','Mount Baker','Othello','Rainier Beach','Rainier Valley','Rainier View','Seward Park','Skyway']
+  },
+  'Washington, DC':{
+    'Northwest (NW)':['Adams Morgan','American University Park','Brightwood','Burleith','Capitol Hill (NW)','Chevy Chase','Cleveland Park','Columbia Heights','Crestwood','Downtown','Dupont Circle','Eckington','Foggy Bottom','Forest Hills','Friendship Heights','Georgetown','Glover Park','H Street','Kalorama','Logan Circle','Mount Pleasant','Mount Vernon Triangle','Park View','Penn Quarter','Petworth','Shaw','Shepherd Park','Sixteenth Street Heights','Spring Valley','Takoma','Tenleytown','U Street Corridor','West End','Woodley Park'],
+    'Northeast (NE)':['Arboretum','Brentwood','Brookland','Carver Langston','Eckington','Edgewood','Fort Lincoln','Fort Totten','Gallaudet','H Street NE','Ivy City','Kingman Park','Lamond-Riggs','Langdon','Michigan Park','NoMa','Riggs Park','Stronghold','Trinidad','Truxton Circle','Union Market','Woodridge'],
+    'Southeast (SE)':['Anacostia','Barney Circle','Buena Vista','Capitol Hill (SE)','Capitol Riverfront','Congress Heights','Deanwood','Dupont Park','Fairlawn','Fort Davis','Garfield Heights','Good Hope','Hill East','Historic Anacostia','Hillcrest','Marshall Heights','Navy Yard','Penn Branch','Randle Highlands','Skyland','Southeast Waterfront','Twining'],
+    'Southwest (SW)':['Bellevue','L’Enfant Plaza','Navy Yard','Southwest Waterfront','The Wharf','Washington Channel']
+  },
+  'Albuquerque, NM':['Barelas','Downtown','Far Northeast Heights','Foothills','Four Hills','High Desert','Inez','International District','La Luz','Martineztown','Mesa Del Sol','Nob Hill','North Valley','Northeast Heights','Old Town','Paradise Hills','Petroglyph','Ridgecrest','Rio Bravo','Sandia Heights','Sawmill','South Valley','Taylor Ranch','Trumbull Village','University','Uptown','Volcano Heights','Volcano Vista','West Mesa','West Side','Wells Park'],
+  'Arlington, VA':['Arlington Heights','Aurora Highlands','Ballston','Barcroft','Bluemont','Buckingham','Cherrydale','Claremont','Clarendon','Colonial Village','Columbia Forest','Columbia Heights','Court House','Crystal City','Donaldson Run','Douglas Park','East Falls Church','Fairlington','Forest Glen','Fort Myer Heights','Foxcroft Heights','Glencarlyn','Green Valley','Halls Hill','High View Park','Lyon Park','Lyon Village','Maywood','North Highlands','North Rosslyn','Old Glebe','Penrose','Pentagon City','Radnor Heights','Riverwood','Rosslyn','Shirlington','Tara-Leeway Heights','Virginia Square','Waverly Hills','Westover','Williamsburg','Woodbury Heights','Yorktown'],
+  'Atlanta, GA':['Adair Park','Adams Park','Adamsville','Ansley Park','Ashview Heights','Atlantic Station','Avondale Estates','Berkeley Park','Brookhaven','Buckhead','Cabbagetown','Candler Park','Capitol View','Cascade','Castleberry Hill','Chamblee','Decatur','Doraville','Druid Hills','Dunwoody','East Atlanta','East Lake','East Point','Edgewood','English Avenue','Glenwood Park','Grant Park','Greenbriar','Hapeville','Hunter Hills','Inman Park','Kirkwood','Lake Claire','Lakewood Heights','Lenox','Lindbergh','Little Five Points','Mechanicsville','Midtown','Morningside-Lenox Park','North Buckhead','North Druid Hills','Old Fourth Ward','Ormewood Park','Peachtree Hills','Peachtree Park','Peoplestown','Piedmont Heights','Pittsburgh','Poncey-Highland','Reynoldstown','Roswell','Sandy Springs','Smyrna','South Atlanta','Southwest Atlanta','Stone Mountain','Sweet Auburn','Sylvan Hills','Tucker','Tuxedo Park','Underwood Hills','Venetian Hills','Vine City','Vinings','Virginia-Highland','West End','West Highlands','West Midtown','West Paces Ferry','Westside','Westview'],
+  'Austin, TX':['Allandale','Anderson Mill','Avery Ranch','Balcones','Barton Hills','Bouldin Creek','Brentwood','Brykerwood','Cherrywood','Circle C Ranch','Clarksville','Crestview','Dawson','Downtown','East Austin','East Cesar Chavez','East Riverside','Franklin Park','Govalle','Hancock','Highland','Hyde Park','Lakeway','Mueller','North Burnet','North Loop','North University','Old West Austin','Onion Creek','Pemberton Heights','Pleasant Valley','Rainey Street','Riverside','Rollingwood','Rosedale','Round Rock','SoCo (South Congress)','South Austin','South Lamar','South Manchaca','Southeast Austin','Steiner Ranch','Tarrytown','Travis Heights','UT Campus','Wells Branch','West Campus','West Lake Hills','West University','Westover Hills','Windsor Park','Wooten','Zilker'],
+  'Baltimore, MD':['Belair-Edison','Bolton Hill','Brewers Hill','Butchers Hill','Canton','Charles Village','Cherry Hill','Cross Country','Druid Heights','Druid Hill','Edmondson Village','Ednor Gardens','Federal Hill','Fells Point','Forest Park','Govans','Greater Roland Park','Greenmount West','Hampden','Harbor East','Harlem Park','Highlandtown','Hollins Market','Homeland','Hopkins/Middle East','Inner Harbor','Jonestown','Lauraville','Little Italy','Locust Point','Madison-Eastend','Medfield','Midtown-Belvedere','Mondawmin','Morrell Park','Mount Vernon','Mount Washington','Northeast Baltimore','Northwest Baltimore','Oldtown','Orangeville','Otterbein','Overlea','Park Heights','Patterson Park','Pen Lucy','Penn North','Pigtown','Pimlico','Poppleton','Reservoir Hill','Ridgely’s Delight','Riverside','Roland Park','Sandtown-Winchester','Seton Hill','Sharp-Leadenhall','South Baltimore','Station North','Towson','Union Square','Upper Fells Point','Upton','Walbrook','Washington Hill','Waverly','Westport','Wilson Park','Woodberry','Wyman Park'],
+  'Boston, MA':['Allston','Back Bay','Bay Village','Beacon Hill','Brighton','Charlestown','Chinatown','Dorchester','Downtown','East Boston','Fenway','Fields Corner','Forest Hills','Hyde Park','Jamaica Plain','Kenmore','Leather District','Longwood','Lower Allston','Mattapan','Mid-Dorchester','Mission Hill','North End','Roslindale','Roxbury','Savin Hill','South Boston','South End','Symphony','Uphams Corner','West End','West Roxbury'],
+  'Buffalo, NY':['Allentown','Black Rock','Broadway-Fillmore','Central Park','Delaware District','Downtown','East Side','Ellicott','Elmwood Village','Front Park','Genesee-Moselle','Grant-Ferry-Forest','Hamlin Park','Kaisertown','Kensington','Kensington-Bailey','Lovejoy','Lower West Side','MLK Park','Masten Park','North Buffalo','North Park','Parkside','Riverside','Schiller Park','Seneca Babcock','South Park','University District','Upper West Side','Walden-Bivona','Westside'],
+  'Cambridge, MA':['Agassiz','Area 2/MIT','Avon Hill','Cambridgeport','Central Square','East Cambridge','Harvard Square','Inman Square','Kendall Square','Mid-Cambridge','Neighborhood Nine','North Cambridge','Peabody','Porter Square','Riverside','Strawberry Hill','The Port','Wellington-Harrington','West Cambridge'],
+  'Charlotte, NC':['Ballantyne','Belmont','Berewick','Biddleville','Cherry','Chantilly','Cotswold','Dilworth','Druid Hills','Eastland','Eastover','Elizabeth','First Ward','Fourth Ward','Highland Creek','Hidden Valley','Madison Park','Matthews','Montford','Myers Park','NoDa (North Davidson)','Olde Mecklenburg','Optimist Park','Park Crossing','Park Road','Pineville','Plaza Midwood','Providence Plantation','Quail Hollow','Sedgefield','Selwyn Park','South End','South Park','Steele Creek','Third Ward','University City','Uptown Charlotte','Wesley Heights','Westover Hills','Windsor Park','Wilmore','Wilora Lake'],
+  'Cincinnati, OH':['Avondale','Bond Hill','Camp Washington','Carthage','Clifton','College Hill','Columbia-Tusculum','Corryville','CUF (Clifton Heights, University Heights, Fairview)','Downtown','East End','East Price Hill','East Walnut Hills','East Westwood','English Woods','Evanston','Fairmount','Fay Apartments','Hartwell','Hyde Park','Kennedy Heights','Linwood','Lower Price Hill','Madisonville','Millvale','Mount Adams','Mount Airy','Mount Auburn','Mount Lookout','Mount Washington','Northside','Oakley','Over-the-Rhine (OTR)','Paddock Hills','Pendleton','Pleasant Ridge','Queensgate','Riverside','Roselawn','Sayler Park','Sedamsville','South Cumminsville','South Fairmount','Spring Grove Village','The Heights','Walnut Hills','West End','West Price Hill','Westwood','Winton Hills','Winton Place'],
+  'Cleveland, OH':['Asiatown','Battery Park','Bellaire-Puritas','Broadway-Slavic Village','Brooklyn Centre','Buckeye-Shaker','Central','Clark-Fulton','Collinwood','Cudell','Detroit-Shoreway','Downtown','Edgewater','Euclid-Green','Fairfax','Glenville','Goodrich-Kirtland Park','Gordon Square','Hough','Industrial Valley','Jefferson','Kamm’s Corners','Kinsman','Lee-Harvard','Lee-Miles','Little Italy','Mount Pleasant','North Broadway','North Collinwood','North Shore Collinwood','Ohio City','Old Brooklyn','Riverside','Scranton-Castle','South Collinwood','St. Clair-Superior','Stockyards','The Flats','Tremont','Union-Miles','University Circle','West Boulevard','Woodland Hills'],
+  'Columbus, OH':['Brewery District','Clintonville','Downtown','East Columbus','Easton','Far East','Far North','Far South','Far West','Franklinton','German Village','Grandview Heights','Harrison West','Hilltop','Italian Village','King-Lincoln Bronzeville','Linden','Merion Village','Milo-Grogan','Near East Side','Near South Side','North Campus','Northland','Old North Columbus','Olde Towne East','Polaris','Schumacher Place','Short North','South Linden','The Bottoms','Tuttle Park','University District','Upper Arlington','Victorian Village','Weinland Park','West Franklinton','Westgate','Whitehall','Worthington'],
+  'Dallas, TX':['Bishop Arts District','Casa Linda','Casa View','Cedars','Deep Ellum','Design District','Downtown Dallas','East Dallas','Far North Dallas','Henderson Avenue','Highland Park','Knox-Henderson','Lake Highlands','Lakewood','Lower Greenville','M Streets','North Dallas','Northwest Dallas','Oak Cliff','Oak Lawn','Old East Dallas','Pleasant Grove','Preston Hollow','Richardson','South Dallas','State-Thomas','Trinity Groves','Turtle Creek','University Park','Uptown','Victory Park','Vickery Park','West End','White Rock Lake'],
+  'Denver, CO':['Alamo Placita','Athmar Park','Auraria','Baker','Barnum','Belcaro','Berkeley','Bonnie Brae','Capitol Hill','Central Park (Stapleton)','Cheesman Park','Cherry Creek','City Park','City Park West','College View','Congress Park','Cory-Merrill','Country Club','Crestmoor','Curtis Park','East Colfax','Five Points','Globeville','Golden Triangle','Hampden','Hampden South','Highland (LoHi)','Hilltop','Indian Creek','Jefferson Park','LoDo (Lower Downtown)','Lowry','Mar Lee','Montbello','Montclair','North Capitol Hill','North Park Hill','Northeast Park Hill','Overland','Park Hill','Platt Park','RiNo (River North)','Regis','Ruby Hill','Sloan Lake','South Park Hill','Speer','Stapleton','Sun Valley','Sunnyside','Union Station','University','University Hills','University Park','Uptown','Valverde','Villa Park','Virginia Village','Washington Park (Wash Park)','Washington Park West','Washington Virginia Vale','West Colfax','West Highland','Westwood','Whittier'],
+  'Detroit, MI':['Bagley','Bricktown','Brightmoor','Brush Park','Capitol Park','Conant Gardens','Corktown','Delray','Downtown','East English Village','Eastern Market','Eastpointe','Eight Mile-Wyoming','Greektown','Greenfield','Grosse Pointe Park','Highland Park','Indian Village','Jeffries','Lafayette Park','Midtown','Mexicantown','Milwaukee Junction','Morningside','New Center','North End','Northeast Detroit','Old Redford','Palmer Park','Palmer Woods','Poletown East','Riverbend','Rivertown','Rosedale Park','Russell Woods','Sherwood Forest','Southwest Detroit','University District','Virginia Park','West Village','Woodbridge'],
+  'Fort Worth, TX':['Alamo Heights','Arlington Heights','Bluebonnet Hills','Camp Bowie','Como','Crestline','Crestwood','Cultural District','Downtown','East Side','Fairmount','Far Greater Northside','Forest Hill','Heights','Hillside','Linwood','Magnolia Avenue','Mistletoe Heights','Monticello','Near East Side','Near Southside','North Fort Worth','Northside','Polytechnic Heights','Ridglea','Rolling Hills','Ryan Place','South Hills','Southside','Stockyards','Sundance Square','Sunset Heights','Tanglewood','TCU/West Cliff','Texas Christian University','University West','Van Zandt','West Side','Westcliff'],
+  'Fresno, CA':['Bullard','Central','Chinatown','Downtown','East Central','Edison','Fig Garden','Hammond','Highway City','Hoover','Huntington Boulevard','Jefferson','Lowell','McLane','Old Fig Garden','Pinedale','Roeding','Sierra Sky Park','Sunnyside','Tower District','Van Ness Extension','West Park','Westside','Woodward Park'],
+  'Hartford, CT':['Asylum Hill','Barry Square','Behind the Rocks','Blue Hills','Clay Arsenal','Downtown','Frog Hollow','Northeast','Parkville','Sheldon-Charter Oak','South End','South Green','South Meadows','South West','Upper Albany','West End'],
+  'Honolulu, HI':['Aiea','Ala Moana','Aliamanu','Chinatown','Diamond Head','Downtown','Hawaii Kai','Kahala','Kaimuki','Kaka’ako','Kalihi','Kaneohe','Kapahulu','Kapalama','Kuli’ou’ou','Liliha','Makiki','Manoa','McCully-Moiliili','Mililani','Niu Valley','Nu’uanu','Pacific Heights','Palolo','Pauoa','Pearl City','Punchbowl','Salt Lake','St. Louis Heights','Tantalus','Wai’alae-Iki','Waikele','Waikiki','Waimanalo','Waipahu','Whitmore Village'],
+  'Indianapolis, IN':['Beech Grove','Broad Ripple','Carmel','Castleton','Chatham-Arch','Cottage Home','Crown Hill','Eagle Creek','Eastside','Fall Creek Place','Far East','Fishers','Fletcher Place','Fountain Square','Garfield Park','Geist','Glendale','Greenwood','Haughville','Herron-Morton','Highland-Brookside','Holy Cross','Indiana Avenue','Irvington','Lawrence','Lockerbie Square','Mapleton-Fall Creek','Martindale-Brightwood','Mass Ave','Meridian-Kessler','Near Eastside','Near Northside','Near Westside','Noblesville','North Meridian','Northside','Old Northside','Plainfield','Ransom Place','Riley Area','Ravenswood','Rocky Ripple','Speedway','SoBro (South Broad Ripple)','South Broad Ripple','Southside','Southport','Westside','Williams Creek','Windsor Village','Woodruff Place'],
+  'Jacksonville, FL':['Arlington','Atlantic Beach','Avondale','Baymeadows','Beach Haven','Brooklyn','Brentwood','Cedar Hills','Deerwood','Downtown','East Arlington','East Jacksonville','Eastside','Fort Caroline','Hyde Park','Intracoastal West','Jacksonville Beach','Lakeshore','LaVilla','Mandarin','Mayport','Murray Hill','Neptune Beach','New Berlin','Normandy','Northside','Northwest Jacksonville','Oakwood Villa','Ortega','Paxon','Ponte Vedra Beach','Riverside','Sandalwood','San Jose','San Marco','South Jacksonville','Southside','Springfield','Sunbeam','Tinseltown','Westside'],
+  'Jersey City, NJ':['Bergen-Lafayette','Communipaw','Downtown','Exchange Place','Greenville','Hamilton Park','Harsimus Cove','Heights','Historic Downtown','Journal Square','Lafayette','Liberty Park','Lincoln Park','Marin Boulevard','McGinley Square','Newport','Paulus Hook','Powerhouse Arts District','Society Hill','The Village','Van Vorst Park','Waterfront','West Bergen','West Side'],
+  'Kansas City, MO':['18th & Vine','Armour Hills','Beacon Hill','Brookside','Citadel','City Market','Columbus Park','Country Club Plaza','Crossroads Arts District','Crown Center','Dutch Hill','East Bottoms','East Side','Hyde Park','Independence Plaza','Ivanhoe','Jazz District','Longview','Marlborough','Midtown','Northeast','Northland','Old Westport','Pendleton Heights','Power & Light District','Quality Hill','River Market','Roanoke','Rockhill','Roeland Park','Ruskin Heights','Santa Fe','South Plaza','South Hyde Park','Southmoreland','Squier Park','Stowers','Strawberry Hill','Sunset Hill','The Paseo','Volker','Volker-Roanoke','Waldo','West Bottoms','West Plaza','West Side','Westport'],
+  'Las Vegas, NV':['Anthem','Boulder Strip','Centennial Hills','Downtown','East Las Vegas','East Side','Eastland Heights','Fremont','Green Valley','Henderson','Huntridge','John S. Park','Lake Las Vegas','Lone Mountain','Mountain’s Edge','MacDonald Highlands','North Las Vegas','Paradise','Rancho Charleston','Rhodes Ranch','Seven Hills','Silverado Ranch','Southern Highlands','Spring Valley','Summerlin','Summerlin South','Sunrise','Tule Springs','The Lakes','The Strip','UNLV','West Las Vegas','Whitney Ranch','Winchester'],
+  'Long Beach, CA':['Alamitos Beach','Belmont Heights','Belmont Park','Belmont Shore','Bixby Hill','Bixby Knolls','Bluff Heights','Bluff Park','California Heights','Carroll Park','Central Long Beach','Cliff May Estates','Downtown','East Side','East Village Arts District','Eastside','El Dorado','Hellman','Lakewood Plaza','Naples','North Long Beach','Park Estates','Plaza','Poly High','Rose Park','Signal Hill','South Wrigley','St. Mary’s','University Park Estates','Virginia Country Club','Wardlow','West Long Beach','Westside','Wrigley','Zaferia'],
+  'Louisville, KY':['Algonquin','Audubon Park','Beechmont','Belknap','Bonnycastle','Butchertown','California','Camp Taylor','Cherokee Gardens','Cherokee Triangle','Clifton','Clifton Heights','Crescent Hill','Deer Park','Downtown','East End','Fairgrounds','Fern Creek','Germantown','Highlands','Highlands-Douglass','Iroquois','Irish Hill','Jeffersontown','Kenwood Hill','Lake Dreamland','Lyndon','Middletown','NuLu (East Market District)','Old Louisville','Park Hill','Park DuValle','Phoenix Hill','Portland','Prospect','Russell','Saint Matthews','Schnitzelburg','Shawnee','Shelby Park','Shively','Smoketown','South Louisville','St. Joseph','Tyler Park','Victory Park','West Buechel','West End','Worthington Heights'],
+  'Madison, WI':['Atwood','Bayview','Bay Creek','Blackhawk','Burr Oaks','Capitol East','Cherokee','Crestwood','Downtown','Dudgeon-Monroe','East Isthmus','Eken Park','Elvehjem','Emerson East','Fitchburg','Greentree','Greenbush','Hawthorne','Hill Farms','Hilldale','Indian Hills','Isthmus','Lake Edge','Langdon','Maple Bluff','Marquette','Meadowood','Middleton','Midvale Heights','Monona','Monroe Street','Nakoma','Near East Side','Near West Side','North Side','Orchard Ridge','Park Ridge','Regent','Schenk-Atwood','Shorewood Hills','South Madison','Spring Harbor','State-Langdon','Sunset Hills','Tenney-Lapham','UW Campus','Vilas','Waunona','West Side','Westmorland','Williamson-Marquette','Wingra Park','Worthington Park'],
+  'Memphis, TN':['Berclair','Binghampton','Bluff City','Box Town','Central Gardens','Chickasaw Gardens','Cooper-Young','Cordova','Crosstown','Downtown','East Memphis','Edgehill','Evergreen Historic District','Frayser','Germantown','Glenview','Graceland','Harbor Town','High Point Terrace','Hickory Hill','Hollywood','Klondike','Lamar-Airways','Mendenhall','Midtown','Mud Island','New Chicago','Normal Station','North Memphis','Orange Mound','Overton Park','Overton Square','Parkway Village','Pinch District','Raleigh','Riverside','Smokey City','South Bluffs','South Main','South Memphis','Vollintine-Evergreen','Whitehaven'],
+  'Miami, FL':['Allapattah','Aventura','Bal Harbour','Bay Harbor Islands','Brickell','Coconut Grove','Coral Gables','Coral Way','Design District','Doral','Downtown Miami','Edgewater','El Portal','Fisher Island','Flagami','Hialeah','Key Biscayne','Liberty City','Little Haiti','Little Havana','Little River','Mid-Beach','Midtown Miami','Miami Beach','Miami Lakes','Miami Shores','MiMo District','Morningside','North Bay Village','North Miami','Omni','Overtown','Pinecrest','South Beach','South Miami','Sunny Isles Beach','Surfside','The Roads','Upper Eastside','Virginia Key','West Brickell','Wynwood'],
+  'Milwaukee, WI':['Avenues West','Bay View','Brewers Hill','Bronzeville','Concordia','Downtown','East Side','East Town','Fond du Lac & North','Halyard Park','Harambee','Historic Mitchell Street','Historic Third Ward','Jackson Park','Juneau Town','Lincoln Village','Lower East Side','Marquette','Menomonee River Valley','Merrill Park','Murray Hill','North Division','Old North Milwaukee','Park West','Riverwest','Sherman Park','South Side','Story Hill','Tippecanoe','Walker’s Point','Washington Heights','Washington Park','Water Tower','Wauwatosa','West Allis','Westown','Williamsburg Heights'],
+  'Minneapolis, MN':['Armatage','Audubon Park','Bancroft','Beltrami','Bottineau','Bryant','Bryn Mawr','Camden','Cedar-Isles-Dean','Cedar-Riverside','Central','CARAG','Como','Corcoran','Diamond Lake','Downtown East','Downtown West','East Calhoun','East Harriet','East Isles','East Phillips','Elliot Park','Ericsson','Field','Folwell','Fulton','Hale','Harrison','Hawthorne','Hiawatha','Holland','Howe','Jordan','Kenny','Kenwood','King Field','Lind-Bohanon','Linden Hills','Logan Park','Longfellow','Loring Park','Lowry Hill','Lowry Hill East (Wedge)','Lyndale','Lynnhurst','Marcy-Holmes','McKinley','Marshall Terrace','Marcy Holmes','Mid-City Industrial','Midtown','Minnehaha','Morris Park','Near North','Nicollet Island','Nokomis','North Loop','Northeast Park','Northrop','Page','Phillips','Powderhorn','Prospect Park','Regina','Seward','Sheridan','Shingle Creek','South Uptown','St. Anthony East','St. Anthony West','Standish','Stevens Square','Sumner-Glenwood','Tangletown','University','Uptown','Ventura Village','Victory','Waite Park','Webber-Camden','West Calhoun','Whittier','Willard-Hay','Windom','Windom Park'],
+  'Nashville, TN':['12 South','5 Points','Antioch','Bellevue','Belle Meade','Belmont-Hillsboro','Berry Hill','Brentwood','Cane Ridge','Charlotte Park','Crieve Hall','Donelson','Downtown','East Nashville','Edgehill','Eastwood','Forest Hills','Franklin','Germantown','Goodlettsville','Green Hills','Gulch','Hermitage','Hillsboro Village','Hillwood','Inglewood','Joelton','Lockeland Springs','Madison','Melrose','Midtown','Mt. Juliet','Music Row','Nations','Oak Hill','Old Hickory','Opry Mills','Percy Priest','Riverwood','Salemtown','Sevier Park','Shelby Bottoms','Sobro','South Nashville','Sylvan Heights','Sylvan Park','Sylvan Heights','The Gulch','Wedgewood-Houston','West End','West Meade','West Nashville','Whites Creek'],
+  'New Orleans, LA':['Algiers','Algiers Point','Audubon','Bayou St. John','Black Pearl','Bywater','Carrollton','Central Business District','Central City','City Park','Desire','Dixon','East Carrollton','East Riverside','Esplanade Ridge','Fairgrounds','Faubourg Marigny','Faubourg St. John','Fillmore','French Quarter','Garden District','Gentilly','Gert Town','Holy Cross','Hollygrove','Irish Channel','Lakeview','Lakeshore','Lakewood','Little Woods','Lower Garden District','Lower Ninth Ward','Marigny','Mid-City','Milan','New Aurora-English Turn','Pines Village','Pontchartrain Park','Read Boulevard','Riverbend','Seventh Ward','St. Anthony','St. Bernard','St. Claude','St. Roch','Tall Timbers','Touro','Treme','Tulane-Gravier','Uptown','Upper Ninth Ward','Venetian Isles','Viavant','Village de L’Est','Warehouse District','West End','West Riverside'],
+  'Newark, NJ':['Branch Brook','Broadway','Central Ward','Clinton Hill','Downtown','East Ward','Forest Hill','Ironbound','Lower Roseville','Lower Vailsburg','Lower Weequahic','North Ward','Roseville','South Broad Valley','South Ward','Springfield/Belmont','University Heights','Upper Roseville','Vailsburg','Weequahic','West Side','West Ward','Woodside'],
+  'Oakland, CA':['Adams Point','Allendale','Arroyo Viejo','Bella Vista','Brookfield Village','Cleveland Heights','Chinatown','Claremont','Clinton','Cox','Crestmont','Crocker Highlands','Downtown','Dimond District','East Lake','East Oakland','Eastmont Hills','Eastlake','Elmhurst','Fairfax','Fairview Park','Forestland','Frick','Fruitvale','Glenview','Golden Gate','Grand Lake','Grass Valley','Havenscourt','Highland Park','Hiller Highlands','Hoover-Foster','Iveywood','Jack London Square','Jingletown','Joaquin Miller','Lakeside','Lakeshore','Laurel','Leona Heights','Longfellow','Lower Hills','Maxwell Park','McClymonds','Melrose','Merritt','Millsmont','Mills College','Montclair','Mosswood','North Oakland','Oak Center','Oak Glen Park','Old Oakland','Patten','Pill Hill','Piedmont Avenue','Piedmont Pines','Pill Hill','Prescott','Produce and Waterfront','Ralph Bunche','Redwood Heights','Rockridge','San Antonio','San Pablo Gateway','Santa Fe','Seminary','Shafter','Shepherd Canyon','Sheffield Village','Skyline','Sobrante Park','St. Elizabeth','Stonehurst','Sunshine','Sweet Lake','Telegraph','Temescal','Toler Heights','Trestle Glen','Tuxedo','Upper Dimond','Upper Laurel','Upper Rockridge','Uptown','Webster','West Oakland','Woodland','Woodminster'],
+  'Oklahoma City, OK':['Adventure District','Asian District','Automobile Alley','Belle Isle','Bricktown','Capitol Hill','Central Park','Cleveland','Crown Heights','Deep Deuce','Downtown','Edgemere Park','Edmond','Heritage Hills','Hillcrest','Jefferson Park','Linwood','Mesta Park','Midtown','Miller','Moore','Nichols Hills','Northwest','Paseo','Plaza District','Quail Springs','Riverside','South Lindsay','Stockyards City','The Greens','Tower Theater','Twin Hills','Uptown 23rd','Valley Brook','Wedgewood','Western Avenue','Westwood','Will Rogers Park'],
+  'Omaha, NE':['Aksarben','Beechwood','Benson','Blackstone','Boys Town','Cathedral','Country Club','Dundee','Downtown','East Omaha','Elkhorn','Field Club','Florence','Gifford Park','Gold Coast','Hanscom Park','Joslyn Castle','Kountze Place','Leavenworth','Little Italy','Little Russia','Maple Village','Memorial Park','Midtown','Millard','Morton Meadows','Near North','North Downtown','North Omaha','Northwest Omaha','Old Market','Papillion','Park East','Prairie Lane','Ralston','Regency','Rockbrook','Saddle Creek','South Omaha','Sunset Hills','West Omaha'],
+  'Orlando, FL':['Audubon Park','Avalon Park','Azalea Park','Baldwin Park','Bay Hill','Belle Isle','Celebration','College Park','Conway','Curry Ford','Delaney Park','Doctor Phillips','Downtown','East End','East Park','Edgewood','Fairview Shores','Hunters Creek','Kissimmee','Lake Buena Vista','Lake Davis','Lake Eola Heights','Lake Highland','Lake Mary','Lake Nona','Lake Underhill','Lake Wales','Lockhart','MetroWest','Mills 50','Milk District','North Quarter','Ocoee','Oviedo','Park Lake-Highland','Parramore','Pine Hills','Pine Castle','Reedy Creek','Rosemont','SoDo','South Eola','Thornton Park','Tildenville','Union Park','Vista East','Walt Disney World','Waterford Lakes','West Colonial','Williamsburg','Winter Garden','Winter Park','Winter Springs'],
+  'Phoenix, AZ':['Ahwatukee','Alhambra','Arcadia','Arcadia Lite','Awahtukee','Biltmore','Camelback East','Central City','Coronado','Deer Valley','Desert Ridge','Desert View','Downtown','East Phoenix','Encanto','Estrella','Garfield','Gateway','Glendale','Goodyear','Laveen','Maryvale','Melrose District','Mesa','Midtown','North Central','North Mountain','Paradise Valley','Peoria','Roosevelt','Sky Harbor','South Mountain','South Phoenix','Sunnyslope','Surprise','Tempe','Uptown','West Phoenix','Willo'],
+  'Pittsburgh, PA':['Allegheny Center','Allegheny West','Allentown','Arlington','Arlington Heights','Banksville','Beechview','Beltzhoover','Bloomfield','Bluff','Bon Air','Brighton Heights','Brookline','California-Kirkbride','Carrick','Central Business District','Central Lawrenceville','Central Northside','Central Oakland','Chartiers City','Crafton Heights','Crawford-Roberts','Duquesne Heights','East Allegheny','East Carnegie','East Hills','East Liberty','Elliott','Esplen','Fairywood','Friendship','Garfield','Glen Hazel','Greenfield','Hays','Hazelwood','Highland Park','Hill District','Homewood','Homewood North','Homewood South','Homewood West','Knoxville','Larimer','Lawrenceville','Lincoln Place','Lincoln-Lemington-Belmar','Lower Lawrenceville','Manchester','Marshall-Shadeland','McKees Rocks','Middle Hill','Morningside','Mount Oliver','Mount Washington','New Homestead','North Oakland','North Point Breeze','North Shore','Northview Heights','Oakwood','Observatory Hill','Overbrook','Perry North','Perry South','Point Breeze','Point Breeze North','Polish Hill','Regent Square','Ridgemont','Shadyside','Sheraden','South Oakland','South Shore','South Side Flats','South Side Slopes','Spring Garden','Spring Hill-City View','Squirrel Hill','Squirrel Hill North','Squirrel Hill South','St. Clair','Stanton Heights','Strip District','Summer Hill','Swisshelm Park','Terrace Village','The Bluff','Troy Hill','Upper Hill','Upper Lawrenceville','West End','West Oakland','Westwood','Windgap'],
+  'Providence, RI':['Blackstone','College Hill','Charles','Downtown','Elmhurst','Elmwood','Federal Hill','Fox Point','Hartford','Hope','Jewelry District','Lower South Providence','Manton','Mount Hope','Mount Pleasant','Olneyville','Providence Heights','Reservoir','Smith Hill','Silver Lake','South Elmwood','Upper South Providence','Valley','Wanskuck','Washington Park','Wayland','West End'],
+  'Raleigh, NC':['Boylan Heights','Brier Creek','Cameron Park','Cameron Village','Capital','Caraleigh','Country Club Hills','Crabtree','Downtown','Eastgate','Falls Lake','Five Points','Forestville','Glen Eden','Glenwood South','Hayes Barton','Historic Oakwood','Knightdale','Mordecai','Morrisville','Mount Vernon','North Hills','North Raleigh','North-East Raleigh','Northwood','Oak Park','Oakwood','Olde Raleigh','Person Street','Pleasant Valley','Rolesville','South Park','Southeast Raleigh','Southwest Raleigh','Stonehenge','Tanglewood','University Park','Wakefield','Warehouse District','West Raleigh','Wilders Grove','Worthdale'],
+  'Richmond, VA':['Battery Park','Bellevue','Brookland Park','Byrd Park','Carillon','Carver','Chamberlayne','Church Hill','Cofer','Davee Gardens','Downtown','East End','East Highland Park','Fan District','Forest Hill','Ginter Park','Grace Street','Hanover Place','Highland Park','Jackson Ward','Lakeside','Manchester','Maymont','Midlothian','Monroe Ward','Museum District','North Side','Northern Barton Heights','Oakwood','Old Town Manchester','Oregon Hill','Randolph','Rocketts Landing','Sauer’s Gardens','Shockoe Bottom','Shockoe Slip','South Side','Springhill','The Diamond','The Fan','Three Chopt','Tobacco Row','Union Hill','West End','West Grace Street','Westbrook','Westover Hills','Windsor Farms','Woodland Heights'],
+  'Sacramento, CA':['Alkali Flat','Arden-Arcade','Avondale','Brentwood','Boulevard Park','Carmichael','Citrus Heights','College-Glen','Curtis Park','Del Paso Heights','Del Rio','Downtown','East Sacramento','Elder Creek','Elk Grove','Elmhurst','Fair Oaks','Florin','Fremont Park','Folsom','Freeport Manor','Gardenland','Golf Course Terrace','Greenhaven','Hagginwood','Hollywood Park','Land Park','Little Pocket','Lemon Hill','Marshall School','Meadowview','Med Center','Midtown','Natomas','North Highlands','North Oak Park','Noralto','Oak Park','Old North Sacramento','Old Sacramento','Orangevale','Parker Homes','Parkway','Pocket','R Street Corridor','Rancho Cordova','Richmond Grove','River Park','Robla','Rosemont','Roseville','Sierra Oaks','South Land Park','South Natomas','South Sacramento','Southside Park','Strawberry Manor','Sundance Lake','Tahoe Park','Tallac Village','The Wal','West Sacramento','Woodlake'],
+  'Saint Louis, MO':['Academy','Baden','Bellefontaine Neighbors','Benton Park','Benton Park West','Bevo Mill','Botanical Heights','Boulevard Heights','Carondelet','Carr Square','Central West End','Cheltenham','Cherokee-Lemp','Clayton','Clayton-Tamm','College Hill','Compton Heights','Covenant Blu-Grand Center','Debaliviere Place','DeMun','Downtown','Downtown West','Dutchtown','East Carondelet','Ellendale','Fairgrounds Park','Fox Park','Franz Park','Gravois Park','Grove','Hamilton Heights','Hampton','Hanley Hills','Hi-Pointe','Hyde Park','Jeff-Vander-Lou','Kingsway East','Kingsway West','Kirkwood','Lafayette Square','LaSalle Park','Lewis Place','Maplewood','Marine Villa','Mark Twain','Midtown','Mound City','Mt. Pleasant','North Hampton','North Pointe','North Riverfront','Northampton','O’Fallon','Old North St. Louis','Patch','Penrose','Princeton Heights','Richmond Heights','Riverview','Shaw','Skinker-DeBaliviere','Soulard','South Hampton','Southwest Garden','St. Louis Hills','Tiffany','Tower Grove East','Tower Grove South','University City','Vandeventer','Visitation Park','Walnut Park East','Walnut Park West','Wells-Goodfellow','West End','Wydown-Skinker','Yeatman'],
+  'Saint Paul, MN':['Battle Creek','Cherokee Heights','Como','Conway','Cottage Grove','Crocus Hill','Dayton\'s Bluff','Downtown','East Side','Eastview','Frogtown','Greater East Side','Hamline-Midway','Hayden Heights','Hazel Park','Highland Park','Highwood','Hillcrest','Hill','Lake Como','Lexington-Hamline','Macalester-Groveland','Maplewood','Merriam Park','Midway','Mounds Park','Mount Airy','North End','Payne-Phalen','Phalen Village','Phalen Park','Rondo','Roseville','Selby-Dale','Snelling-Hamline','Stinson-Shawmut','Summit-University','Summit Hill','Sun Ray','Thomas-Dale','Union Park','West Midway','West End','West Seventh','West Side'],
+  'Salt Lake City, UT':['9th & 9th','15th & 15th','Avenues','Ballpark','Bonneville Hills','Capitol Hill','Central City','Central Park','Daybreak','Downtown','East Bench','East Central','East Liberty Park','Fairpark','Federal Heights','Foothill','Foothill/Sunnyside','Gateway','Glendale','Granary District','Greater Avenues','Holladay','Indian Hills','Kearns','Liberty Wells','Marmalade','Midvale','Millcreek','Murray','Olympus Cove','Poplar Grove','Riverbottoms','Riverside','Rose Park','Sandy','South Salt Lake','South Sugar House','Sugar House','The Avenues','Trolley Square','University','Wasatch Hollow','West Valley'],
+  'San Antonio, TX':['Alamo Heights','Alamo Ranch','Alta Vista','Beacon Hill','Brackenridge Park','Cibolo','Converse','Denver Heights','Downtown','East Side','Eastwood','Five Points','Government Hill','Helotes','Hills and Dales','Hollywood Park','Inspiration Hills','King William','Kingsbridge','Lavaca','Leon Valley','Live Oak','Mahncke Park','Medical Center','Midtown','Mission Trails','Monte Vista','New Braunfels','Northeast San Antonio','Northwest San Antonio','Olmos Park','Oak Park-Northwood','Pearl District','Prospect Hill','River Walk','San Pedro','Schertz','Shavano Park','Selma','Smithson Valley','South Side','Southeast San Antonio','Southside','Southtown','Stone Oak','Terrell Heights','Terrell Hills','Tobin Hill','Universal City','Uptown','Vance Jackson','West Side','Westwood Hills','Windcrest','Woodlawn Hills'],
+  'San Diego, CA':['Allied Gardens','Balboa Park','Bankers Hill','Barrio Logan','Bay Park','Bay Ho','Bird Rock','Bonita','Carmel Valley','City Heights','Clairemont','Coronado','Cortez Hill','Cypress Park','Del Cerro','Del Mar','Downtown','East Village','El Cajon','Encanto','Encinitas','Escondido','Gaslamp Quarter','Golden Hill','Grantville','Hillcrest','Imperial Beach','Kearny Mesa','Kensington','La Jolla','La Mesa','La Playa','Lakeside','Lincoln Park','Linda Vista','Little Italy','Logan Heights','Mid-City','Midway District','Mira Mesa','Miramar','Mission Beach','Mission Hills','Mission Valley','Morena','Mountain View','Nestor','Normal Heights','North Park','Ocean Beach','Old Town','Otay Mesa','Pacific Beach','Paradise Hills','Park West','Point Loma','Poway','Ramona','Rancho Bernardo','Rancho Peñasquitos','Rancho Santa Fe','Rolando','Roseville-Fleetridge','Sabre Springs','San Carlos','San Ysidro','Scripps Ranch','Serra Mesa','Skyline','Solana Beach','Sorrento Valley','South Bay Terraces','South Park','Spring Valley','Stockton','Sunset Cliffs','Talmadge','Tierrasanta','Torrey Highlands','Torrey Pines','University City','University Heights','Valencia Park','Vista','Webster','West Mesa','Whittier'],
+  'San Francisco, CA':['Anza Vista','Ashbury Heights','Balboa Park','Balboa Terrace','Bayview','Bernal Heights','Buena Vista','Castro','Chinatown','Civic Center','Cole Valley','Corona Heights','Cow Hollow','Crocker-Amazon','Diamond Heights','Dogpatch','Dolores Heights','Duboce Triangle','Embarcadero','Eureka Valley','Excelsior','Fillmore','Financial District','Fisherman’s Wharf','Forest Hill','Forest Knolls','Glen Park','Golden Gate Heights','Haight-Ashbury','Hayes Valley','Hunters Point','Ingleside','Inner Mission','Inner Richmond','Inner Sunset','Jackson Square','Japantown','Jordan Park','Lake Street','Lakeshore','Laurel Heights','Lone Mountain','Lower Haight','Lower Nob Hill','Lower Pacific Heights','Marina','Merced Heights','Merced Manor','Midtown Terrace','Mint Hill','Mission','Mission Bay','Mission Dolores','Mission Terrace','Monterey Heights','Nob Hill','Noe Valley','NoPa','North Beach','North Panhandle','Oceanview','Outer Mission','Outer Richmond','Outer Sunset','Pacific Heights','Park Merced','Parkside','Polk Gulch','Portola','Potrero Hill','Presidio','Presidio Heights','Rincon Hill','Russian Hill','Sea Cliff','Silver Terrace','SoMa','South Beach','St. Francis Wood','Stonestown','Sunnyside','Sunset','Telegraph Hill','Tenderloin','Treasure Island','Twin Peaks','Union Square','Upper Market','Visitacion Valley','West Portal','Western Addition','Westwood Highlands','Westwood Park','Yerba Buena'],
+  'San Jose, CA':['Almaden Valley','Alum Rock','Berryessa','Blossom Hill','Blossom Valley','Burbank','Cambrian Park','Communications Hill','Downtown','East Foothills','East San Jose','Edenvale','Evergreen','Fruitdale','Hensley','Japantown','Little Saigon','Little Portugal','Midtown','Naglee Park','North San Jose','North Valley','Northside','Rose Garden','Santa Teresa','Seven Trees','Silver Creek','South San Jose','Spartan Keyes','Sunol-Midtown','Townsend','Vendome','Washington','West San Jose','West Valley','Willow Glen'],
+  'Somerville, MA':['Assembly Square','Ball Square','Davis Square','East Somerville','Magoun Square','Porter Square','Powderhouse Square','Prospect Hill','Spring Hill','Teele Square','Ten Hills','Union Square','West Somerville','Winter Hill'],
+  'Tampa, FL':['Audubon Park','Avila','Ballast Point','Bay Crest Park','Bayshore Beautiful','Bayshore Gardens','Beach Park','Belmont Heights','Brandon','Buckhorn','Busch Gardens','Cara-Cara','Carrollwood','Channelside','Citrus Park','College Hill','Culbreath Bayou','Davis Islands','Downtown','Drew Park','East Tampa','East Ybor','Egypt Lake-Leto','Fair Oaks-Manhattan Manor','Forest Hills','Gandy/Sun Bay South','Golf View','Grant Park','Greater Carrollwood','Greater Palm River','Greater Town \'N Country','Harbour Island','Heights','Hillsborough Heights','Historic Hyde Park','Holiday Acres','Hunter’s Green','Hyde Park','Interbay','Lake Magdalene','Lowry Park','Lutz','MacFarlane Park','MacDill','New Tampa','North Hyde Park','North Tampa','Old Hyde Park Village','Old Seminole Heights','Palmetto Beach','Palms of Carrollwood','Plant City','Riverside Heights','River Hills','Rocky Point','Seffner','Seminole Heights','SoHo (South Howard)','South Tampa','Sulphur Springs','Sun City Center','Sunset Park','Tampa Heights','Tampa Palms','Temple Crest','Terrace Park','University','Vila Carrolwood','Virginia Park','Wellswood','West Riverfront','West Tampa','Westchase','Westshore Plaza','Westshore','Ybor City'],
+  'Tucson, AZ':['Amphi','Armory Park','Avondale','Barrio Anita','Barrio Hollywood','Barrio San Antonio','Barrio Viejo','Blenman-Elm','Broadmoor-Broadway','Catalina Foothills','Catalina Vista','Civano','Coronado Heights','Country Club','Dodge Flower','Dunbar Spring','El Cortez Heights','El Encanto','El Presidio','Feldman\'s','Fort Lowell','Iron Horse','Jefferson Park','Limberlost','Marana','Menlo Park','Midtown','Miramonte','Mountain View','North University','Oracle','Oro Valley','Palo Verde','Pascua','Peter Howell','Pie Allen','Poets Square','Rancho del Lago','Rincon Heights','Rio Nuevo','Sahuarita','Saguaro Vista','Sahuaro','Sam Hughes','San Clemente','Santa Cruz','Santa Rita','South Park','South Tucson','Speedway','Stone Curtain','Sunnyside','Tucson Estates','Tucson Mountain Park','Tucson Mountains','University','Vail','West University','Winterhaven'],
+  'Virginia Beach, VA':['Aragona Village','Bayfront','Bayside','Bow Creek','Brigadoon','Cape Henry','Centerville','Chesapeake Beach','Croatan','Dam Neck','Eastern Shore','Great Neck','Green Run','Hilltop','Holland','Indian River','Kempsville','Lago Mar','Lake Smith','Lake Wesley','Larkspur','London Bridge','Lynnhaven','Newtown','North End','North Virginia Beach','Ocean Lakes','Ocean Park','Old Beach','Pembroke','Plaza','Princess Anne','Pungo','Rudee Heights','Sandbridge','Seatack','Shadowlawn','Shore Drive','Strawbridge','Thalia','Town Center','Virginia Beach Town Center','West Neck','Western Branch','Witchduck'],
+  'Other':['City center','North side','South side','East side','West side','Suburbs']
+};
+
+/* ── STEP CONTENT ── */
+const OB_CONTENT=[
+  ()=>`
+    <div class="ob-card-title">Your profile</div>
+    <div class="ob-card-sub">This is what potential roommates see first. Add a photo and a line about yourself.</div>
+    <div class="f"><div class="f-label">Profile photo <span class="f-hint">(recommended)</span></div>
+      <div class="photo-upload">
+        <div class="photo-preview" id="ob-photo-preview">${myProfile.photoURL?`<img src="${myProfile.photoURL}">`:'📷'}</div>
+        <div>
+          <label class="photo-upload-btn" for="ob-photo-input">Choose a photo</label>
+          <input type="file" id="ob-photo-input" accept="image/*" style="display:none" onchange="handlePhotoPick(this)">
+          <div class="photo-hint">JPG or PNG, up to ~5MB. Square works best.</div>
+        </div>
+      </div>
+    </div>
+    <div class="f"><div class="f-label">Display name</div>
+      <input class="auth-input" type="text" placeholder="e.g. Alex P." value="${(myProfile.name||'').replace(/"/g,'&quot;')}" oninput="myProfile.name=this.value">
+    </div>
+    <div class="f"><div class="f-label">About you <span class="f-hint">(a sentence or two)</span></div>
+      <textarea class="auth-textarea" placeholder="What's your living style? What are you looking for in a roommate?" oninput="myProfile.about=this.value">${(myProfile.about||'').replace(/</g,'&lt;')}</textarea>
+    </div>`,
+
+  ()=>`
+    <div class="ob-card-title">Your role & location</div>
+    <div class="ob-card-sub">Are you looking for a room or offering one? And where?</div>
+    <div class="f"><div class="f-label">I am…</div>
+      ${opts('role',[['seeker','🔍 Looking for a room'],['offerer','🏠 Offering a room'],['both','Both']],false,'three')}</div>
+    <div class="f"><div class="f-label">Lifestyle type</div>
+      ${opts('lifestyle_type',[['quiet','🌿 Quiet professional'],['social','🎉 Social & outgoing'],['student','📚 Student'],['remote','💻 Remote worker'],['creative','🎨 Creative'],['mixed','⚖️ Mixed']],true,'three')}</div>
+    <div class="f"><div class="f-label">City</div>
+      <select onchange="myProfile.city=this.value;myProfile.neighborhood='';renderOB()" style="width:100%;padding:9px 12px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;">
+        <option value="">Select city…</option>
+        ${Object.keys(NEIGHBORHOODS).sort((a,b)=>a==='Other'?1:b==='Other'?-1:a.localeCompare(b)).map(c=>`<option value="${c}" ${myProfile.city===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    ${myProfile.city?renderNbhdPicker():''}
+    <div class="f"><div class="f-label">Location precision</div>
+      ${opts('loc_precision',[['city','City only'],['neighborhood','Neighborhood'],['radius','Within a radius']],false,'three')}</div>
+    ${myProfile.loc_precision==='radius'?`<div class="f"><div class="f-label">Search radius</div>
+      <div class="slider-row">
+        <input type="range" min="1" max="50" step="1" value="${myProfile.radius||10}" oninput="myProfile.radius=+this.value;document.getElementById('rv').textContent=this.value+'mi'">
+        <span class="slider-val" id="rv">${myProfile.radius||10}mi</span>
+      </div></div>`:''}`,
+
+  ()=>`
+    <div class="ob-card-title">Daily habits</div>
+    <div class="ob-card-sub">How you actually live day-to-day.</div>
+    <div class="f"><div class="f-label">Sleep schedule ${dbBtn('sleep')}</div>
+      ${opts('sleep_schedule',[['early_bird','🌅 Early bird'],['mixed','🌤 Flexible'],['night_owl','🌙 Night owl']],false,'three')}</div>
+    <div class="f"><div class="f-label">Wake-up time</div>
+      ${opts('wake_time',[['before6am','Before 6am'],['6-8am','6–8am'],['8-10am','8–10am'],['after10am','After 10am']],false,'two')}</div>
+    <div class="f"><div class="f-label">Work from home ${dbBtn('wfh')}</div>
+      ${opts('work_from_home',[['never','Never'],['sometimes','Sometimes'],['always','Always']],false,'three')}</div>
+    <div class="f"><div class="f-label">Noise tolerance ${dbBtn('noise')}</div>
+      ${opts('noise_tolerance',[['silent','🤫 Silent'],['quiet','Quiet'],['moderate','Moderate'],['loud','🔊 Loud']],false,'two')}</div>
+    <div class="f"><div class="f-label">Morning routine</div>
+      ${opts('morning_routine',[['quick','Quick <20min'],['medium','~30min'],['long','Long 45min+']],false,'three')}</div>`,
+
+  ()=>`
+    <div class="ob-card-title">Home environment</div>
+    <div class="ob-card-sub">What your ideal shared space looks like.</div>
+    <div class="f"><div class="f-label">Cleanliness ${dbBtn('cleanliness')}</div>
+      ${opts('cleanliness',[['relaxed','😌 Relaxed'],['average','Average'],['clean','🧹 Clean'],['spotless','✨ Spotless']],false,'two')}</div>
+    <div class="f"><div class="f-label">Cleaning frequency</div>
+      ${opts('cleaning_freq',[['rarely','Rarely'],['monthly','Monthly'],['weekly','Weekly'],['daily','Daily']],false,'two')}</div>
+    <div class="f"><div class="f-label">Guest frequency ${dbBtn('guests')}</div>
+      ${opts('guests',[['never','Never'],['rarely','Rarely'],['sometimes','Sometimes'],['often','Often']],false,'two')}</div>
+    <div class="f"><div class="f-label">Overnight guests ${dbBtn('overnight')}</div>
+      ${opts('overnight_guests',[['false','Not ok'],['true','Fine by me']],false,'two')}</div>
+    <div class="f"><div class="f-label">Common areas vibe</div>
+      ${opts('common_area',[['private','Private first'],['shared','Shared freely'],['communal','Very communal']],false,'three')}</div>`,
+
+  ()=>`
+    <div class="ob-card-title">Lifestyle</div>
+    <div class="ob-card-sub">The stuff that makes cohabitation work — or not.</div>
+    <div class="f"><div class="f-label">Smoking ${dbBtn('smoking')}</div>
+      ${opts('smoking',[['non-smoker','🚭 Non-smoker'],['outside','Outside only'],['inside','Inside ok']],false,'three')}</div>
+    <div class="f"><div class="f-label">Drinking ${dbBtn('drinking')}</div>
+      ${opts('drinking',[['never','Never'],['social','Socially'],['regular','Regularly']],false,'three')}</div>
+    <div class="f"><div class="f-label">Pets ${dbBtn('pets')}</div>
+      ${opts('has_pets',[['false','No pets'],['true','I have pets']],false,'two')}</div>
+    <div class="f"><div class="f-label">OK with roommate's pets?</div>
+      ${opts('pets_ok',[['false','No thanks'],['true','Totally fine']],false,'two')}</div>
+    <div class="f"><div class="f-label">Diet <span class="f-hint">(select all)</span> ${dbBtn('diet')}</div>
+      ${opts('diet',[['vegan','🌱 Vegan'],['vegetarian','Vegetarian'],['halal','☪️ Halal'],['kosher','✡️ Kosher'],['none','No restrictions']],true,'two')}</div>
+    <div class="f"><div class="f-label">Social energy ${dbBtn('social_level')}</div>
+      ${opts('social_level',[['introvert','🪴 Introvert'],['balanced','⚖️ Balanced'],['extrovert','🎉 Extrovert']],false,'three')}</div>`,
+
+  ()=>`
+    <div class="ob-card-title">Finances</div>
+    <div class="ob-card-sub">Budget and how you split the bills.</div>
+    <div class="f"><div class="f-label">Monthly rent budget ${dbBtn('budget')}</div>
+      <div class="slider-row">
+        <input type="range" min="500" max="5000" step="50" value="${myProfile.budget||1500}" oninput="myProfile.budget=+this.value;document.getElementById('bv').textContent='$'+Number(this.value).toLocaleString()">
+        <span class="slider-val" id="bv">$${Number(myProfile.budget||1500).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px;"><span>$500</span><span>$5,000</span></div>
+    </div>
+    <div class="f"><div class="f-label">Preferred move-in</div>
+      ${opts('move_in',[['asap','ASAP'],['1month','1 month'],['3months','1–3 months'],['flexible','Flexible']],false,'two')}</div>
+    <div class="f"><div class="f-label">Bill splitting ${dbBtn('bills')}</div>
+      ${opts('bills_split',[['equal','Split equally'],['by_use','By usage'],['flexible','Flexible']],false,'three')}</div>`,
+
+  ()=>`
+    <div class="ob-card-title">Identity & values</div>
+    <div class="ob-card-sub">Who you are and what matters to you at home.</div>
+    <div class="f"><div class="f-label">Age</div>
+      <div class="slider-row">
+        <input type="range" min="18" max="65" step="1" value="${myProfile.age||25}" oninput="myProfile.age=+this.value;document.getElementById('av').textContent=this.value">
+        <span class="slider-val" id="av">${myProfile.age||25}</span>
+      </div>
+    </div>
+    <div class="f"><div class="f-label">Religion <span class="f-hint">(select all)</span> ${dbBtn('religion')}</div>
+      ${opts('religion',[['christian','✝️ Christian'],['muslim','☪️ Muslim'],['jewish','✡️ Jewish'],['hindu','🕉 Hindu'],['buddhist','☸️ Buddhist'],['other','Other'],['none','Non-religious']],true,'two')}</div>
+    <div class="f"><div class="f-label">Observance level ${dbBtn('observance')}</div>
+      ${opts('observance',[['none','Not observant'],['casual','Casually'],['practicing','Practicing'],['strict','Strictly']],false,'two')}</div>
+    <div class="f"><div class="f-label">Primary language(s) <span class="f-hint">(select all)</span></div>
+      ${opts('languages',[['en','🇺🇸 English'],['es','🇪🇸 Spanish'],['fr','🇫🇷 French'],['zh','🇨🇳 Mandarin'],['ar','🇸🇦 Arabic'],['other','Other']],true,'two')}</div>
+    <div class="f"><div class="f-label">Gender identity</div>
+      ${opts('gender',[['woman','Woman'],['man','Man'],['nonbinary','Non-binary'],['prefer_not','Prefer not to say']],false,'two')}</div>`
+];
+
+/* ── NEIGHBORHOOD PICKER (handles 250+ NYC neighborhoods via search) ── */
+function renderNbhdPicker(){
+  const data=NEIGHBORHOODS[myProfile.city];
+  if(!data) return '';
+  const selected=myProfile.neighborhood||'';
+  const selectedChip=selected?'<div style="margin:-2px 0 10px;font-size:12px;"><span style="background:var(--green-l);color:var(--green);padding:4px 10px;border-radius:20px;font-weight:600;">✓ '+esc(selected)+'</span> <button type="button" onclick="P(\'neighborhood\',\'\',false)" style="background:none;border:none;color:var(--text3);font-size:11px;text-decoration:underline;cursor:pointer;margin-left:6px;">change</button></div>':'';
+  // Flat list cities (LA, Chicago, Other) use the simple grid
+  if(Array.isArray(data)){
+    return '<div class="f"><div class="f-label">Neighborhood <span class="f-hint">(required)</span></div>'
+      +selectedChip
+      +opts('neighborhood',data.map(function(n){return [n,n];}),false,'two')
+      +'</div>';
+  }
+  // Grouped (NYC). Show search + filtered borough sections.
+  const q=myProfile._nbhdQuery||'';
+  return '<div class="f"><div class="f-label">Neighborhood <span class="f-hint">(required)</span></div>'
+    +selectedChip
+    +'<input class="auth-input" id="nbhd-search" placeholder="Search e.g. East Village, Park Slope, Astoria…" value="'+esc(q)+'" oninput="setNbhdQuery(this.value)" autocomplete="off" style="margin-bottom:8px;">'
+    +'<div id="nbhd-grid" style="max-height:340px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--rs);padding:10px 12px;background:var(--bg);">'+renderNbhdGrid(q)+'</div>'
+    +'</div>';
+}
+
+function setNbhdQuery(q){
+  myProfile._nbhdQuery=q;
+  const grid=document.getElementById('nbhd-grid');
+  if(grid) grid.innerHTML=renderNbhdGrid(q);
+}
+
+function renderNbhdGrid(q){
+  const data=NEIGHBORHOODS[myProfile.city];
+  if(!data||Array.isArray(data)) return '';
+  const ql=String(q||'').trim().toLowerCase();
+  const selected=myProfile.neighborhood||'';
+  let html='';
+  Object.keys(data).forEach(function(borough){
+    const matches=data[borough].filter(function(n){return !ql||n.toLowerCase().indexOf(ql)>=0;});
+    if(!matches.length) return;
+    html+='<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:8px 0 6px;">'+borough+'</div>';
+    html+='<div class="opts two" style="margin-bottom:4px;">';
+    matches.forEach(function(n){
+      const on=selected===n?'on':'';
+      html+='<button type="button" class="opt '+on+'" data-n="'+esc(n)+'" onclick="P(\'neighborhood\',this.dataset.n,false)">'+esc(n)+'</button>';
+    });
+    html+='</div>';
+  });
+  if(!html) html='<div style="font-size:12px;color:var(--text3);padding:14px 4px;">No neighborhoods match "'+esc(q)+'" — try a shorter search.</div>';
+  return html;
+}
+
+function handlePhotoPick(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){alert('That image is larger than 5MB — please choose a smaller one.');input.value='';return;}
+  pendingPhotoFile=file;
+  const url=URL.createObjectURL(file);
+  myProfile.photoURL=url; // local preview; replaced with the Storage URL after upload
+  const pv=document.getElementById('ob-photo-preview');
+  if(pv) pv.innerHTML=`<img src="${url}">`;
+}
+
+function renderOB(){
+  document.getElementById('ob-hero').style.display=obStep===0?'':'none';
+  document.getElementById('ob-progress-wrap').style.display='';
+  const prog=document.getElementById('ob-progress');
+  prog.innerHTML=OB_STEPS.map((s,i)=>{
+    const cls=i<obStep?'done':i===obStep?'active':'';
+    return`<div class="ob-step ${cls}"><div class="ob-step-circle">${i<obStep?'✓':i+1}</div>${i<OB_STEPS.length-1?'<div class="ob-step-line"></div>':''}</div>`;
+  }).join('');
+  const area=document.getElementById('ob-form-area');
+  area.innerHTML=`<div class="ob-card">${OB_CONTENT[obStep]()}<hr class="sep"><div class="btn-row">
+    ${obStep>0?`<button class="btn btn-ghost" onclick="obPrev()">← Back</button>`:''}
+    <button class="btn btn-primary" onclick="obNext()">${obStep===OB_STEPS.length-1?(profileComplete?'Save changes →':'Find my matches →'):'Next →'}</button>
+  </div></div>`;
+}
+function obNext(){
+  // Step-by-step validation
+  if(obStep===1){
+    if(!myProfile.city){toast('Pick a city first.');return;}
+    if(!myProfile.neighborhood){toast('Pick a neighborhood — this is how we match you with people moving to the same area.');return;}
+  }
+  if(obStep<OB_STEPS.length-1){obStep++;renderOB();window.scrollTo({top:0,behavior:'smooth'});}else{finishOnboarding();}
+}
+function obPrev(){if(obStep>0){obStep--;renderOB();window.scrollTo({top:0,behavior:'smooth'});}}
+
+/* ── ENCODING ── */
+const ORD={
+  sleep_schedule:{early_bird:0,mixed:.5,night_owl:1},
+  wake_time:{'before6am':0,'6-8am':.33,'8-10am':.67,'after10am':1},
+  work_from_home:{never:0,sometimes:.5,always:1},
+  noise_tolerance:{silent:0,quiet:.33,moderate:.67,loud:1},
+  morning_routine:{quick:0,medium:.5,long:1},
+  cleanliness:{relaxed:0,average:.33,clean:.67,spotless:1},
+  cleaning_freq:{rarely:0,monthly:.25,weekly:.75,daily:1},
+  guests:{never:0,rarely:.33,sometimes:.67,often:1},
+  common_area:{private:0,shared:.5,communal:1},
+  smoking:{'non-smoker':0,outside:.5,inside:1},
+  drinking:{never:0,social:.5,regular:1},
+  social_level:{introvert:0,balanced:.5,extrovert:1},
+  bills_split:{equal:0,by_use:.5,flexible:1},
+  observance:{none:0,casual:.33,practicing:.67,strict:1}
+};
+const DIET_OPTS=['vegan','vegetarian','halal','kosher','none'];
+const REL_OPTS=['christian','muslim','jewish','hindu','buddhist','other','none'];
+const LANG_OPTS=['en','es','fr','zh','ar','other'];
+const DB_FIELDS=['smoking','pets','noise','guests','overnight','wfh','cleanliness','diet','drinking','religion','observance','budget','bills','social_level'];
+const GROUPS=[{k:'habits',w:1.2,n:5},{k:'home',w:1.0,n:5},{k:'lifestyle',w:1.3,n:11},{k:'finances',w:.8,n:2},{k:'identity',w:1.5,n:16}];
+const GRP_COLORS={habits:'#4A9EFF',home:'#A87FFF',lifestyle:'#3FD68A',finances:'#F0A830',identity:'#E8609A'};
+
+function encode(p){
+  const v=[];const push=x=>v.push(parseFloat((x||0).toFixed(4)));
+  push(ORD.sleep_schedule[p.sleep_schedule]??0.5);push(ORD.wake_time[p.wake_time]??0.5);
+  push(ORD.work_from_home[p.work_from_home]??0.5);push(ORD.noise_tolerance[p.noise_tolerance]??0.5);
+  push(ORD.morning_routine[p.morning_routine]??0.5);push(ORD.cleanliness[p.cleanliness]??0.5);
+  push(ORD.cleaning_freq[p.cleaning_freq]??0.5);push(ORD.guests[p.guests]??0.5);
+  push(p.overnight_guests==='true'||p.overnight_guests===true?1:0);push(ORD.common_area[p.common_area]??0.5);
+  push(ORD.smoking[p.smoking]??0);push(ORD.drinking[p.drinking]??0.5);
+  push(p.has_pets==='true'||p.has_pets===true?1:0);push(p.pets_ok==='true'||p.pets_ok===true?1:0);
+  DIET_OPTS.forEach(d=>push((p.diet||[]).includes(d)?1:0));push(ORD.social_level[p.social_level]??0.5);
+  push(Math.min((p.budget||1500)/5000,1));push(ORD.bills_split[p.bills_split]??0.5);
+  REL_OPTS.forEach(r=>push((p.religion||[]).includes(r)?1:0));push(ORD.observance[p.observance]??0);
+  LANG_OPTS.forEach(l=>push((p.languages||[]).includes(l)?1:0));push(Math.min(Math.max(((p.age||25)-18)/47,0),1));
+  DB_FIELDS.forEach(f=>push((p.dealbreakers||{})[f]?1:0));
+  return v;
+}
+
+function computeScore(vA,vB,pA,pB){
+  const prefDims=GROUPS.reduce((s,g)=>s+g.n,0);
+  const dbA=vA.slice(prefDims);
+  const blocks=[];
+  const dbKeys=DB_FIELDS;
+  for(let i=0;i<dbA.length;i++){
+    if(dbA[i]===1){
+      const fld=dbKeys[i];
+      if(fld==='smoking'&&(vB[10]||0)>0) blocks.push('No smoking');
+      if(fld==='pets'&&(vB[12]||0)>0) blocks.push('No pets');
+      if(fld==='diet'){
+        const myDiet=pA.diet||[];const pDiet=pB.diet||[];
+        if(myDiet.includes('halal')&&!pDiet.includes('halal')&&!pDiet.includes('none')) blocks.push('Halal conflict');
+        if(myDiet.includes('kosher')&&!pDiet.includes('kosher')&&!pDiet.includes('none')) blocks.push('Kosher conflict');
+      }
+    }
+  }
+  if(blocks.length>0) return{score:0,blocked:true,blocks,groupScores:{}};
+  let offset=0,totalDist=0,totalW=0;const groupScores={};
+  GROUPS.forEach(g=>{
+    let d2=0;for(let i=0;i<g.n;i++){const diff=(vA[offset+i]||0)-(vB[offset+i]||0);d2+=diff*diff;}
+    const gd=Math.sqrt(d2/g.n);const sigma=0.5,gamma=2;
+    groupScores[g.k]=Math.round(Math.exp(-gamma*gd*gd)*100);
+    totalDist+=g.w*gd*gd;totalW+=g.w;offset+=g.n;
+  });
+  const wd=Math.sqrt(totalDist/totalW);const K=Math.exp(-2*wd*wd);
+  const prior=0.15,priorOdds=prior/(1-prior);
+  const postOdds=priorOdds*(1+K*2.5);
+  const post=Math.min(0.97,Math.max(0.03,postOdds/(1+postOdds)));
+  return{score:Math.round(post*100),blocked:false,blocks:[],groupScores};
+}
+
+/* (POOL of sample profiles removed — Matches now shows real users only) */
+
+let computedMatches=[];
+
+/* ── CATEGORY SYSTEM ── */
+const LIFESTYLE_CATS=[
+  {key:'quiet',label:'🌿 Quiet',color:'#3D7A5A',bg:'#EBF4EE'},
+  {key:'social',label:'🎉 Social',color:'#C0502A',bg:'#FAF0EB'},
+  {key:'student',label:'📚 Student',color:'#1E3A5F',bg:'#E8EEF5'},
+  {key:'remote',label:'💻 Remote',color:'#6B3FA0',bg:'#F2EDFB'},
+  {key:'creative',label:'🎨 Creative',color:'#A07830',bg:'#FAF4E8'},
+  {key:'mixed',label:'⚖️ Mixed',color:'#6B6760',bg:'#F0EDE5'},
+];
+const ROLE_CATS=[
+  {key:'seeker',label:'🔍 Seeking room',color:'#1E3A5F',bg:'#E8EEF5'},
+  {key:'offerer',label:'🏠 Offering room',color:'#6B3FA0',bg:'#F2EDFB'},
+];
+
+function catColor(m){
+  const types=m.lifestyle_type||[];
+  const cat=LIFESTYLE_CATS.find(c=>types.includes(c.key));
+  return cat?{color:cat.color,bg:cat.bg,label:cat.label}:{color:'#6B6760',bg:'#F0EDE5',label:'Mixed'};
+}
+
+function buildMatches(){
+  profileComplete=true; unlockTabs();
+  const myVec=encode(myProfile);
+  // Real registered users only — no sample/demo data.
+  const pool=realUsers.map(u=>({...u,sample:false}));
+  const scored=pool.map(p=>{
+    const pVec=encode(p);
+    const result=computeScore(myVec,pVec,myProfile,p);
+    // location boost — same neighborhood = +5, same city = +2
+    let locBoost=0;
+    if(myProfile.city&&p.city===myProfile.city) locBoost+=2;
+    if(myProfile.neighborhood&&p.neighborhood===myProfile.neighborhood) locBoost+=5;
+    // friend boost
+    const isFriend=friends.some(f=>String(f.id)===String(p.id)&&f.status==='connected');
+    if(isFriend) locBoost+=10;
+    const finalScore=Math.min(99,result.score+locBoost);
+    return{...p,...result,score:finalScore,locBoost,isFriend};
+  }).filter(m=>!m.blocked);
+
+  // ── Geographic hard filter ──
+  // 1) NEVER match across cities. Detroit/Downtown ≠ Tampa/Downtown, full stop.
+  // 2) Within the same city, require the same neighborhood (UWS ≠ East Village).
+  // 3) Soft fallback only when nobody in the user's exact neighborhood is signed up:
+  //    show other members IN THE SAME CITY with a "Different neighborhood" badge.
+  //    If nobody in the same city has signed up at all, matches stays empty.
+  matchesFallback=false;
+  const myCity=myProfile.city||'';
+  const myN=myProfile.neighborhood||'';
+  // Step 1: hard restrict to the user's city — no cross-metro matches, ever.
+  const sameCity = myCity ? scored.filter(m=>m.city===myCity) : scored;
+  // Step 2: within that city, require same neighborhood; otherwise fall back to same-city others.
+  if(myN && sameCity.length>0){
+    const sameNbhd=sameCity.filter(m=>m.neighborhood===myN);
+    if(sameNbhd.length>0){
+      computedMatches=sameNbhd.sort((a,b)=>b.score-a.score);
+    }else{
+      matchesFallback=true;
+      computedMatches=sameCity.map(m=>Object.assign({},m,{noNbhdOverlap:true})).sort((a,b)=>b.score-a.score);
+    }
+  }else{
+    computedMatches=sameCity.sort((a,b)=>b.score-a.score);
+  }
+  switchView('matches');renderMatches();
+}
+
+/* ── VIEW MODE ── */
+function setViewMode(m){
+  viewMode=m;
+  document.getElementById('vt-chart').classList.toggle('active',m==='chart');
+  document.getElementById('vt-tinder').classList.toggle('active',m==='tinder');
+  if(m==='tinder') tinderIdx=0;
+  renderMatches();
+}
+
+function setFilter(f,el){
+  curFilter=f;
+  document.querySelectorAll('.f-chip').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');renderMatches();
+}
+
+function setCatFilter(k){
+  curCatFilter=k;renderMatches();
+}
+
+function getFiltered(){
+  return computedMatches.filter(m=>{
+    if(matchStates[m.id]==='skipped') return false;
+    if(curFilter==='high') return m.score>=75;
+    if(curFilter==='religion') return(m.religion||[]).some(r=>r!=='none');
+    if(curFilter==='wfh') return m.wfh==='always'||m.wfh==='sometimes';
+    if(curFilter==='budget') return Math.abs((m.budget||1500)-(myProfile.budget||1500))<600;
+    if(curFilter==='near') return m.neighborhood&&myProfile.neighborhood&&m.neighborhood===myProfile.neighborhood||m.city===myProfile.city;
+    if(curCatFilter!=='all'){
+      if(['seeker','offerer'].includes(curCatFilter)) return m.role===curCatFilter;
+      return(m.lifestyle_type||[]).includes(curCatFilter);
+    }
+    return true;
+  });
+}
+
+function scoreColor(s){return s>=80?'#3D7A5A':s>=65?'#A07830':'#C0502A';}
+function scoreBand(s){return s>=80?'#3D7A5A':s>=65?'#A07830':'#C0502A';}
+function verdict(s){return s>=80?'Highly compatible':s>=65?'Good match':s>=50?'Moderate':'Low match';}
+
+function renderMatches(){
+  // category pills
+  const catRow=document.getElementById('cat-row');
+  const allCats=[{key:'all',label:'All',color:'#1A1814',bg:'#E8E3D8'},...ROLE_CATS,...LIFESTYLE_CATS];
+  catRow.innerHTML=allCats.map(c=>`<span class="cat-pill${curCatFilter===c.key?' active':''}"
+    style="background:${c.bg};color:${c.color};" onclick="setCatFilter('${c.key}')">${c.label}</span>`).join('');
+
+  const list=getFiltered();
+  document.getElementById('f-count').textContent=`${list.length} profile${list.length!==1?'s':''}`;
+  const content=document.getElementById('matches-content');
+  if(!list.length){
+    if(!computedMatches.length){
+      const where=myProfile.city?(' in <strong>'+esc(myProfile.city)+'</strong>'):'';
+      content.innerHTML='<div style="padding:60px 20px;text-align:center;color:var(--text3)"><div style="font-size:40px;margin-bottom:14px;">🏘️</div><div style="font-family:\'Playfair Display\',serif;font-size:22px;color:var(--text);margin-bottom:8px;">You\'re first in!</div><div style="font-size:13.5px;max-width:400px;margin:0 auto;line-height:1.7;">Nobody else'+where+' has signed up yet. We only match within the same city, so once another person here creates a profile they\'ll appear ranked by compatibility. Share your invite code from <strong>Friends</strong> to bring someone in.</div></div>';
+    }else{
+      content.innerHTML='<div style="padding:60px;text-align:center;color:var(--text3)">No profiles match this filter.</div>';
+    }
+    return;
+  }
+
+  if(viewMode==='tinder'){renderTinder(list,content);}
+  else{renderChartMode(list,content);}
+  // Fallback banner: shown when nobody in the user's exact neighborhood has signed up
+  // yet, so we're showing other compatible members in the same city.
+  if(matchesFallback){
+    const banner='<div style="background:var(--gold-l);border:1px solid var(--gold-l);color:var(--gold);padding:12px 16px;border-radius:var(--rs);margin-bottom:14px;font-size:13px;line-height:1.6;">📍 No one in <strong>'+esc(myProfile.neighborhood||'your neighborhood')+'</strong> has signed up yet. Showing other compatible members in <strong>'+esc(myProfile.city||'your city')+'</strong> — each is tagged <em>Different neighborhood</em>. (We never match you across cities.)</div>';
+    content.insertAdjacentHTML('afterbegin',banner);
+  }
+}
+
+function renderChartMode(list,content){
+  content.innerHTML=`<div class="cards-grid">${list.map((m,i)=>{
+    const sc=scoreColor(m.score);
+    const state=matchStates[m.id]||'none';
+    const btnLabel=m.sample?'Sample · view only':state==='messaging'?'💬 Message':'Connect →';
+    const btnCls=m.sample?'btn-connect':state==='messaging'?'btn-connect msg':'btn-connect';
+    const barsHtml=Object.entries(m.groupScores||{}).map(([k,v])=>
+      `<div class="mbar-row"><div class="mbar-lbl">${k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`
+    ).join('');
+    const tagsHtml=(m.tags||[]).map(t=>`<span class="mtag ${t.c}">${t.l}</span>`).join('');
+    const cc=catColor(m);
+    const diffBadge=m.noNbhdOverlap?' <span style="background:var(--gold-l);color:var(--gold);font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:20px;margin-left:4px;">DIFFERENT NEIGHBORHOOD</span>':'';
+    const locLine=m.neighborhood?`<div class="loc-tag">📍 ${m.neighborhood}, ${m.city}${diffBadge}</div>`:m.city?`<div class="loc-tag">📍 ${m.city}${diffBadge}</div>`:'';
+    const friendBadge=m.isFriend?`<span class="mtag mtag-g">👥 Friend</span>`:'';
+    return`<div class="mcard" id="mcard-${m.id}" onclick="openModal(${jid(m.id)})" style="animation-delay:${i*.06}s">
+      <div class="mcard-top-band" style="background:${scoreBand(m.score)}"></div>
+      <div class="mcard-body">
+        <div style="margin-bottom:8px;"><span class="cat-badge" style="background:${cc.bg};color:${cc.color}">${cc.label}</span>
+          ${m.role==='offerer'?'<span class="cat-badge" style="background:#F2EDFB;color:#6B3FA0;margin-left:4px;">🏠 Offering room</span>':''}
+          ${m.sample?'<span class="sample-badge" style="margin-left:4px;">Sample</span>':''}</div>
+        <div class="mcard-row1">
+          <div style="display:flex;align-items:center">
+            ${avatarHTML(m,'m-avatar')}
+            <div class="m-info">
+              <div class="m-name">${m.name}</div>
+              <div class="m-meta">${m.age}</div>
+              ${locLine}
+            </div>
+          </div>
+          <div class="score-pill"><div class="score-big" style="color:${sc}">${m.score}%</div><div class="score-lbl">match</div></div>
+        </div>
+        <div class="m-tags">${friendBadge}${tagsHtml}</div>
+        <div class="m-bars">${barsHtml}</div>
+        <div class="mcard-footer" onclick="event.stopPropagation()">
+          <button class="${btnCls}" id="mbtn-${m.id}" onclick="handleConnect(${jid(m.id)},event)">${btnLabel}</button>
+          <button class="btn-skip" onclick="handleSkip(${jid(m.id)},event)">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ── TINDER MODE ── */
+function renderTinder(list,content){
+  const remaining=list.slice(tinderIdx);
+  if(!remaining.length){
+    content.innerHTML=`<div class="tinder-wrap"><div class="tinder-done"><div style="font-size:48px;margin-bottom:16px">🎉</div><h3>You've seen everyone!</h3><p style="color:var(--text2);font-size:14px">Switch back to chart view or adjust your filters to see more.</p></div></div>`;
+    return;
+  }
+  const cards=remaining.slice(0,3);
+  const stackHTML=cards.map((m,i)=>{
+    const sc=scoreColor(m.score);
+    const posClass=i===0?'top':i===1?'back1':'back2';
+    const cc=catColor(m);
+    const locLine=m.neighborhood?`📍 ${m.neighborhood}`:m.city||'';
+    return`<div class="tinder-card ${posClass}" id="tc-${m.id}">
+      <div class="swipe-hint-right" id="hint-right-${m.id}">LIKE 💚</div>
+      <div class="swipe-hint-left" id="hint-left-${m.id}">PASS ✕</div>
+      <div class="tc-band" style="background:${scoreBand(m.score)}"></div>
+      <div class="tc-body">
+        <div class="tc-top">
+          ${avatarHTML(m,'tc-avatar')}
+          <div>
+            <div class="tc-name">${m.name}</div>
+            <div class="tc-meta">${m.age}${locLine?' · '+locLine:''}</div>
+            <div style="margin-top:4px;"><span class="cat-badge" style="background:${cc.bg};color:${cc.color};font-size:10px">${cc.label}</span>${m.sample?'<span class="sample-badge" style="margin-left:4px;">Sample</span>':''}</div>
+          </div>
+        </div>
+        <div class="tc-score-row">
+          <div class="tc-score-num" style="color:${sc}">${m.score}%</div>
+          <div><div class="tc-score-verdict" style="color:${sc}">${verdict(m.score)}</div><div class="tc-score-lbl">compatibility match</div></div>
+        </div>
+        <div class="tc-about">${m.about}</div>
+        <div class="tc-traits">
+          <div class="tc-trait"><div class="tc-trait-lbl">Sleep</div><div class="tc-trait-val">${(m.sleep_schedule||'').replace('_',' ')}</div></div>
+          <div class="tc-trait"><div class="tc-trait-lbl">Budget</div><div class="tc-trait-val">$${(m.budget||0).toLocaleString()}/mo</div></div>
+          <div class="tc-trait"><div class="tc-trait-lbl">Cleanliness</div><div class="tc-trait-val">${m.cleanliness||'—'}</div></div>
+          <div class="tc-trait"><div class="tc-trait-lbl">WFH</div><div class="tc-trait-val">${m.work_from_home||'—'}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const topMatch=remaining[0];
+  content.innerHTML=`<div class="tinder-wrap">
+    <div class="tinder-stack" id="tinder-stack">${stackHTML}</div>
+    <div class="tinder-actions">
+      <button class="ta-btn ta-skip" onclick="tinderSwipe('left')" title="Pass">✕</button>
+      <button class="ta-btn ta-super" onclick="openModal(${jid(topMatch.id)});event.stopPropagation()" title="View profile">👁</button>
+      <button class="ta-btn ta-like" onclick="tinderSwipe('right')" title="Connect">💚</button>
+    </div>
+    <div class="tinder-hint">← Pass · View profile 👁 · Connect →</div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text3)">${remaining.length} profile${remaining.length!==1?'s':''} remaining</div>
+  </div>`;
+
+  // drag support
+  initDrag(topMatch.id);
+}
+
+function tinderSwipe(dir){
+  const list=getFiltered();
+  const remaining=list.slice(tinderIdx);
+  if(!remaining.length) return;
+  const m=remaining[0];
+  const card=document.getElementById('tc-'+m.id);
+  if(!card) return;
+  card.classList.add(dir==='right'?'flying-right':'flying-left');
+  if(dir==='right') handleConnect(m.id,{stopPropagation:()=>{}});
+  setTimeout(()=>{tinderIdx++;renderMatches();},380);
+}
+
+function initDrag(id){
+  const card=document.getElementById('tc-'+id);
+  if(!card) return;
+  let startX=0,curX=0,dragging=false;
+  const onStart=e=>{dragging=true;startX=(e.touches?e.touches[0].clientX:e.clientX);};
+  const onMove=e=>{
+    if(!dragging) return;
+    curX=(e.touches?e.touches[0].clientX:e.clientX)-startX;
+    card.style.transform=`translateX(${curX}px) rotate(${curX*0.04}deg)`;
+    const hr=document.getElementById('hint-right-'+id);const hl=document.getElementById('hint-left-'+id);
+    if(hr) hr.style.opacity=Math.max(0,Math.min(1,curX/80));
+    if(hl) hl.style.opacity=Math.max(0,Math.min(1,-curX/80));
+  };
+  const onEnd=()=>{
+    if(!dragging) return; dragging=false;
+    if(curX>80) tinderSwipe('right');
+    else if(curX<-80) tinderSwipe('left');
+    else{card.style.transform='';const hr=document.getElementById('hint-right-'+id);const hl=document.getElementById('hint-left-'+id);if(hr)hr.style.opacity=0;if(hl)hl.style.opacity=0;}
+    curX=0;
+  };
+  card.addEventListener('mousedown',onStart);document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onEnd);
+  card.addEventListener('touchstart',onStart,{passive:true});document.addEventListener('touchmove',onMove,{passive:true});document.addEventListener('touchend',onEnd);
+}
+
+function handleConnect(id,e){
+  if(e&&e.stopPropagation) e.stopPropagation();
+  id=String(id);
+  const m=findMatch(id);if(!m) return;
+  if(m.sample){toast('"'+m.name+'" is a sample profile. Sign up a second account — or invite a friend to join — to chat with a real person.');return;}
+  if(matchStates[id]==='messaging'){switchView('messages');openThread(id);return;}
+  matchStates[id]='messaging';
+  startConversation(id).catch(err=>toast('Could not start the chat: '+((err&&err.message)||err)));
+  renderMatches();
+  switchView('messages');
+  openThread(id);
+}
+
+function handleSkip(id,e){if(e)e.stopPropagation();matchStates[String(id)]='skipped';renderMatches();}
+
+/* ── MODAL ── */
+function openModal(id){
+  const m=findMatch(id);if(!m) return;
+  const sc=scoreColor(m.score);
+  const state=matchStates[id]||'none';
+  const btnLabel=m.sample?'Sample profile — view only':state==='messaging'?'💬 Open conversation':'Send connect request';
+  const btnCls=m.sample?'modal-btn modal-btn-sec':state==='messaging'?'modal-btn modal-btn-primary msg':'modal-btn modal-btn-primary';
+  const barsHtml=Object.entries(m.groupScores||{}).map(([k,v])=>
+    `<div class="mbar-row"><div class="mbar-lbl">${k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`
+  ).join('');
+  const cc=catColor(m);
+  document.getElementById('modal-topband').style.background=scoreBand(m.score);
+  document.getElementById('modal-inner').innerHTML=
+    '<div class="modal-hdr">'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +avatarHTML(m,'modal-av')
+    +'<div>'
+    +`<div style="margin-bottom:4px;"><span class="cat-badge" style="background:${cc.bg};color:${cc.color};font-size:10px">${cc.label}</span>`
+    +(m.role==='offerer'?'<span class="cat-badge" style="background:#F2EDFB;color:#6B3FA0;font-size:10px;margin-left:4px;">🏠 Offering</span>':'')
+    +(m.isFriend?'<span class="cat-badge" style="background:#EBF4EE;color:#3D7A5A;font-size:10px;margin-left:4px;">👥 Friend</span>':'')
+    +'</div>'
+    +`<div class="modal-name">${m.name}</div>`
+    +`<div class="modal-sub">${m.age} · 📍 ${m.neighborhood||m.city||''}</div>`
+    +'</div></div>'
+    +'<button class="close-x" onclick="closeModal()">✕</button>'
+    +'</div>'
+    +`<div class="score-band-row"><div class="score-giant" style="color:${sc}">${m.score}%</div>`
+    +`<div><div class="score-verdict-lbl">${verdict(m.score)}</div>`
+    +`<div class="score-method">Bayesian compatibility${m.locBoost>0?' · +'+m.locBoost+' location boost':''}</div></div></div>`
+    +'<div class="sec-title">About</div>'
+    +`<p style="font-size:13px;color:var(--text2);line-height:1.7">${m.about}</p>`
+    +'<div class="sec-title">Lifestyle snapshot</div>'
+    +'<div class="trait-grid">'
+    +`<div class="trait-box"><div class="trait-box-lbl">Sleep</div><div class="trait-box-val">${(m.sleep_schedule||'').replace('_',' ')}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">WFH</div><div class="trait-box-val">${m.work_from_home||'—'}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Cleanliness</div><div class="trait-box-val">${m.cleanliness||'—'}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Smoking</div><div class="trait-box-val">${m.smoking||'—'}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Pets</div><div class="trait-box-val">${m.has_pets?'Has pets':'No pets'}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Diet</div><div class="trait-box-val">${(m.diet||['none']).join(', ')}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Religion</div><div class="trait-box-val">${(m.religion||['none']).join(', ')}</div></div>`
+    +`<div class="trait-box"><div class="trait-box-lbl">Budget</div><div class="trait-box-val">$${(m.budget||0).toLocaleString()}/mo</div></div>`
+    +'</div>'
+    +'<div class="sec-title">Compatibility breakdown</div>'
+    +`<div class="m-bars" style="margin-bottom:0">${barsHtml}</div>`
+    +'<div class="modal-footer-btns">'
+    +`<button class="${btnCls}" id="modal-connect-${id}" onclick="modalConnect(${jid(id)})">${btnLabel}</button>`
+    +'<button class="modal-btn modal-btn-sec" onclick="closeModal()">Close</button>'
+    +'</div>';
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function modalConnect(id){
+  id=String(id);
+  const m=findMatch(id);if(!m) return;
+  if(m.sample){toast('"'+m.name+'" is a sample profile — view only.');return;}
+  closeModal();
+  handleConnect(id,{stopPropagation:()=>{}});
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
+function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal();}
+
+/* ── FRIENDS (real users via Firestore) ── */
+let foundUsersCache={};  // id -> user object from most recent search/lookup
+
+function generateInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // omits 0/O/1/I for clarity
+  let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return 'CRNSWTH-'+s;
+}
+
+function refreshInviteUI(){
+  const el=document.getElementById('my-code');
+  if(el) el.textContent=myProfile.inviteCode||'—';
+}
+
+function searchFriends(q){
+  const res=document.getElementById('friend-search-results');
+  if(!res) return;
+  if(!q||q.trim().length<2){res.innerHTML='';return;}
+  if(!db||!myUid){res.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">Sign in to search members.</div>';return;}
+  const lower=q.trim().toLowerCase();
+  res.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">Searching…</div>';
+  db.collection('users')
+    .where('nameLower','>=',lower)
+    .where('nameLower','<',lower+'')
+    .limit(10).get()
+    .then(function(snap){
+      const matches=[];
+      snap.forEach(function(d){
+        if(d.id===myUid) return;
+        const u=d.data(); u.id=d.id;
+        if(friends.some(function(f){return String(f.id)===String(u.id);})) return;
+        foundUsersCache[String(u.id)]=u;
+        matches.push(u);
+      });
+      if(!matches.length){res.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">No members found by that name.</div>';return;}
+      res.innerHTML=matches.map(function(u){
+        const loc=u.neighborhood||u.city||'';
+        return '<div class="search-result">'
+          +avatarHTML(u,'fr-avatar')
+          +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(u.name||'Member')+'</div>'
+          +(loc?'<div style="font-size:11px;color:var(--text3)">📍 '+esc(loc)+'</div>':'')
+          +'</div>'
+          +'<button class="fr-btn primary" onclick="addFriend('+jid(u.id)+')">Add friend</button>'
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(e){
+      res.innerHTML='<div style="font-size:12px;color:var(--rust);padding:8px 0">Search failed: '+esc((e&&e.message)||e)+'</div>';
+    });
+}
+
+function addFriend(uid){
+  uid=String(uid);
+  if(friends.some(function(f){return String(f.id)===uid;})) return;
+  const u=foundUsersCache[uid]||realUsers.find(function(x){return String(x.id)===uid;});
+  if(!u){toast('Could not find that member.');return;}
+  friends.push(Object.assign({},u,{id:uid,status:'pending'}));
+  renderFriends();
+  const si=document.getElementById('friend-search'); if(si) si.value='';
+  const sr=document.getElementById('friend-search-results'); if(sr) sr.innerHTML='';
+}
+
+function redeemCode(){
+  const inp=document.getElementById('code-inp');
+  const code=(inp.value||'').trim().toUpperCase();
+  const res=document.getElementById('code-result');
+  if(!res) return;
+  if(!code){res.style.color='var(--rust)';res.textContent='Enter an invite code.';return;}
+  if(myProfile.inviteCode&&code===myProfile.inviteCode){res.style.color='var(--text3)';res.textContent="That's your own code!";return;}
+  if(!db||!myUid){res.style.color='var(--rust)';res.textContent='You must be signed in.';return;}
+  res.style.color='var(--text3)';res.textContent='Looking up…';
+  db.collection('users').where('inviteCode','==',code).limit(1).get().then(function(snap){
+    if(snap.empty){res.style.color='var(--rust)';res.textContent='Code not found. Double-check and try again.';return;}
+    const doc=snap.docs[0]; const u=doc.data(); u.id=doc.id;
+    if(friends.some(function(f){return String(f.id)===String(u.id);})){res.style.color='var(--text3)';res.textContent='Already connected!';return;}
+    foundUsersCache[String(u.id)]=u;
+    addFriend(u.id);
+    inp.value='';
+    res.style.color='var(--green)';res.textContent='Connected with '+(u.name||'them')+'! They will appear in your matches with a friend boost.';
+    if(profileComplete) buildMatches();
+  }).catch(function(e){
+    res.style.color='var(--rust)';res.textContent='Lookup failed: '+((e&&e.message)||e);
+  });
+}
+
+function acceptFriend(uid){
+  uid=String(uid);
+  const f=friends.find(function(x){return String(x.id)===uid;}); if(f) f.status='connected';
+  renderFriends();
+  if(profileComplete) buildMatches();
+}
+
+function renderFriends(){
+  refreshInviteUI();
+  const list=document.getElementById('friends-list');
+  if(!list) return;
+  if(!friends.length){list.innerHTML='<div style="font-size:13px;color:var(--text3);padding:16px 0">No connections yet. Share your invite code or search above.</div>';return;}
+  list.innerHTML=friends.map(function(f){
+    return '<div class="friend-row">'
+      +avatarHTML(f,'fr-avatar')
+      +'<div class="fr-info">'
+      +'<div class="fr-name">'+esc(f.name||'Member')+'</div>'
+      +'<div class="fr-meta">📍 '+esc(f.neighborhood||f.city||'')+'</div>'
+      +'</div>'
+      +'<span class="fr-status '+f.status+'">'+(f.status==='connected'?'✓ Connected':'Pending')+'</span>'
+      +(f.status==='pending'?'<button class="fr-btn primary" onclick="acceptFriend('+jid(f.id)+')">Accept</button>':'')
+      +'</div>';
+  }).join('');
+}
+
+function copyCode(){
+  const code=myProfile.inviteCode||'';
+  if(!code){toast('Your invite code will appear once your profile is saved.');return;}
+  try{navigator.clipboard.writeText(code);}catch(e){}
+  const el=document.getElementById('code-copied');
+  if(el){el.textContent='Copied to clipboard!';setTimeout(function(){el.textContent='';},2000);}
+}
+function shareLink(){
+  const code=myProfile.inviteCode||'';
+  if(!code){toast('Your invite code will appear once your profile is saved.');return;}
+  try{navigator.clipboard.writeText(code);}catch(e){}
+  const el=document.getElementById('code-copied');
+  if(el){el.textContent='Code copied — share '+code+' with anyone you want to invite.';setTimeout(function(){el.textContent='';},3500);}
+}
+
+/* ── MESSAGES (real-time, Firestore) ── */
+function fmtTime(d){const h=d.getHours(),m=d.getMinutes();return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h>=12?'PM':'AM');}
+
+/* deterministic conversation id from the two participants */
+function convId(a,b){return [String(a),String(b)].sort().join('__');}
+
+/* create (or touch) the conversation doc so both people see the thread */
+function startConversation(otherUid){
+  if(!db||!myUid) return Promise.reject(new Error('Not signed in'));
+  const m=findMatch(otherUid)||{};
+  const cid=convId(myUid,otherUid);
+  const other=String(otherUid);
+  const names={}; names[myUid]=myProfile.name||'Me'; names[other]=m.name||'Member';
+  const photos={}; photos[myUid]=myProfile.photoURL||''; photos[other]=m.photoURL||'';
+  return db.collection('conversations').doc(cid).set({
+    participants:[myUid,other], names:names, photos:photos,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+}
+
+/* live list of my conversations + unread indicator */
+function subscribeThreads(){
+  if(!db||!myUid) return;
+  if(threadsUnsub){threadsUnsub();threadsUnsub=null;}
+  threadsUnsub=db.collection('conversations')
+    .where('participants','array-contains',myUid)
+    .onSnapshot(function(snap){
+      myConversations=snap.docs.map(function(d){
+        const c=d.data();
+        const other=(c.participants||[]).find(function(p){return p!==myUid;});
+        return {cid:d.id, otherUid:other,
+          name:(c.names&&c.names[other])||'Member',
+          photo:(c.photos&&c.photos[other])||'',
+          lastText:c.lastText||'', lastFrom:c.lastFrom||'',
+          updatedAt:(c.updatedAt&&c.updatedAt.toMillis)?c.updatedAt.toMillis():0};
+      }).sort(function(a,b){return b.updatedAt-a.updatedAt;});
+      const unread=myConversations.some(function(c){return c.lastFrom&&c.lastFrom!==myUid&&String(activeThread)!==String(c.otherUid);});
+      const dot=document.getElementById('msg-dot'); if(dot) dot.style.display=unread?'inline-block':'none';
+      const mv=document.getElementById('view-messages');
+      if(mv&&mv.classList.contains('active')) renderThreads();
+    },function(err){console.warn('threads listener error',err);});
+}
+
+function renderThreads(){
+  const items=document.getElementById('thread-items');
+  if(!items) return;
+  if(!myConversations||!myConversations.length){
+    items.innerHTML='<div class="no-threads">No conversations yet.<br>Connect with a match to start chatting.</div>';return;
+  }
+  items.innerHTML=myConversations.map(function(c){
+    const m=findMatch(c.otherUid);
+    const name=(m&&m.name)||c.name||'Member';
+    const photo=(m&&m.photoURL)||c.photo||'';
+    const score=m?m.score:null;
+    const av=avatarHTML({photoURL:photo,name:name,emoji:'🙂',avatarBg:'#E8E3D8',avatarFg:'#6B6760'},'th-avatar');
+    const preview=c.lastText?esc(c.lastText.slice(0,40)):'Say hello!';
+    const scoreBadge=(score!=null)?'<span class="th-score" style="background:'+scoreColor(score)+'18;color:'+scoreColor(score)+'">'+score+'%</span>':'';
+    return '<div class="thread-item '+(String(activeThread)===String(c.otherUid)?'active':'')+'" onclick="openThread('+jid(c.otherUid)+')">'
+      +av
+      +'<div class="th-info"><div class="th-name">'+esc(name)+'</div><div class="th-preview">'+preview+'</div></div>'
+      +scoreBadge
+      +'</div>';
+  }).join('');
+}
+
+function openThread(id){
+  id=String(id);
+  activeThread=id;
+  if(!db||!myUid) return;
+  const cid=convId(myUid,id);
+  const m=findMatch(id);
+  const conv=(myConversations||[]).find(function(c){return String(c.otherUid)===id;});
+  const name=(m&&m.name)||(conv&&conv.name)||'Member';
+  const photo=(m&&m.photoURL)||(conv&&conv.photo)||'';
+  const loc=m?(m.neighborhood||m.city||''):'';
+  const sc=m?scoreColor(m.score):'#6B6760';
+  const scoreBadge=m?'<span class="chat-score-badge" style="background:'+sc+'18;color:'+sc+'">'+m.score+'%</span>':'';
+  const profileBtn=m?'<button onclick="openModal('+jid(id)+')" style="margin-left:auto;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2)">Profile</button>':'';
+  const area=document.getElementById('chat-area');
+  area.innerHTML=
+    '<div class="chat-header">'
+    +avatarHTML({photoURL:photo,name:name,emoji:'🙂',avatarBg:'#E8E3D8',avatarFg:'#6B6760'},'chat-avatar')
+    +'<div><div class="chat-name">'+esc(name)+scoreBadge+'</div>'
+    +(loc?'<div style="font-size:11px;color:var(--text3)">📍 '+esc(loc)+'</div>':'')
+    +'</div>'
+    +profileBtn
+    +'</div>'
+    +'<div class="chat-messages" id="chat-msgs-'+id+'"><div class="system-msg">Loading…</div></div>'
+    +'<div class="chat-input-row">'
+    +'<input class="chat-input" id="chat-inp" placeholder="Message '+esc(name)+'…" onkeydown="if(event.key===\'Enter\')sendMsg('+jid(id)+')" autocomplete="off">'
+    +'<button class="chat-send" onclick="sendMsg('+jid(id)+')">Send</button>'
+    +'</div>';
+  renderThreads();
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  msgUnsub=db.collection('conversations').doc(cid).collection('messages')
+    .orderBy('createdAt')
+    .onSnapshot(function(snap){
+      const msgs=snap.docs.map(function(d){return d.data();});
+      renderRealMessages(id,msgs);
+    },function(err){console.warn('messages listener error',err);});
+  const dot=document.getElementById('msg-dot'); if(dot) dot.style.display='none';
+}
+
+function renderRealMessages(id,msgs){
+  const el=document.getElementById('chat-msgs-'+id); if(!el) return;
+  if(!msgs.length){el.innerHTML='<div class="system-msg">No messages yet — say hello 👋</div>';return;}
+  el.innerHTML=msgs.map(function(msg){
+    const mine=msg.from===myUid;
+    const t=(msg.createdAt&&msg.createdAt.toDate)?fmtTime(msg.createdAt.toDate()):'';
+    return '<div class="msg-row '+(mine?'mine':'theirs')+'"><div>'
+      +(!mine?'<div class="msg-time">'+t+'</div>':'')
+      +'<div class="msg-bubble">'+esc(msg.text||'')+'</div>'
+      +(mine?'<div class="msg-time">'+t+'</div>':'')
+      +'</div></div>';
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendMsg(id){
+  id=String(id);
+  const inp=document.getElementById('chat-inp');
+  const text=(inp.value||'').trim(); if(!text) return;
+  if(!db||!myUid){toast('You need to be signed in to send messages.');return;}
+  inp.value='';
+  const cid=convId(myUid,id);
+  const m=findMatch(id)||{};
+  const names={}; names[myUid]=myProfile.name||'Me'; names[id]=m.name||'Member';
+  const photos={}; photos[myUid]=myProfile.photoURL||''; photos[id]=m.photoURL||'';
+  const ref=db.collection('conversations').doc(cid);
+  // Write/refresh the conversation doc FIRST so the message-create rule
+  // (which checks the parent's participants) always passes, then add the message.
+  ref.set({
+    participants:[myUid,id], names:names, photos:photos,
+    lastText:text, lastFrom:myUid,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true}).then(function(){
+    return ref.collection('messages').add({
+      from:myUid, text:text, createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }).catch(function(err){toast('Message failed: '+((err&&err.message)||err));});
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELPERS  ── id handling, escaping, avatars, toasts
+   ═══════════════════════════════════════════════════════════════════════ */
+function jid(id){return JSON.stringify(String(id));}   // safe quoted literal for inline handlers
+function findMatch(id){return computedMatches.find(function(x){return String(x.id)===String(id);});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function avatarHTML(obj,cls){
+  obj=obj||{};
+  const bg=obj.avatarBg||'#E8E3D8', fg=obj.avatarFg||'#6B6760';
+  const inner=obj.photoURL ? ('<img src="'+esc(obj.photoURL)+'" alt="">')
+            : (obj.emoji || esc((obj.name||'?').trim().charAt(0).toUpperCase()));
+  return '<div class="'+cls+'" style="background:'+bg+';color:'+fg+'">'+inner+'</div>';
+}
+
+function buildTags(u){
+  const tags=[];
+  if(u.religion&&u.religion.length&&u.religion[0]!=='none')
+    tags.push({l:cap(u.religion[0])+(u.observance&&u.observance!=='none'?' · '+cap(u.observance):''),c:'mtag-gold'});
+  if(u.work_from_home==='always') tags.push({l:'WFH always',c:'mtag-g'});
+  else if(u.work_from_home==='sometimes') tags.push({l:'WFH sometimes',c:'mtag-g'});
+  if(u.diet&&u.diet.length&&u.diet[0]!=='none') tags.push({l:cap(u.diet[0]),c:'mtag-g'});
+  if(u.role==='offerer') tags.push({l:'Offering room 🏠',c:'mtag-v'});
+  if(u.social_level) tags.push({l:cap(u.social_level),c:'mtag-r'});
+  return tags.slice(0,3);
+}
+
+function toast(msg){
+  let t=document.getElementById('cw-toast');
+  if(!t){
+    t=document.createElement('div'); t.id='cw-toast';
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1A1814;color:#fff;padding:12px 18px;border-radius:12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:13px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:900;opacity:0;transition:opacity .2s;text-align:center;line-height:1.5;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._timer); t._timer=setTimeout(function(){t.style.opacity='0';},4200);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NAV / VIEW HELPERS
+   ═══════════════════════════════════════════════════════════════════════ */
+function showNavUser(show){const nu=document.getElementById('nav-user'); if(nu) nu.style.display=show?'':'none';}
+function updateNavAvatar(){
+  const el=document.getElementById('nav-me-av'); if(!el) return;
+  if(myProfile.photoURL&&!String(myProfile.photoURL).startsWith('blob:')) el.innerHTML='<img src="'+esc(myProfile.photoURL)+'">';
+  else el.textContent=((myProfile.name||(currentUser&&currentUser.email)||'?').trim().charAt(0)||'?').toUpperCase();
+}
+function forceView(v){
+  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
+  const target=document.getElementById('view-'+v); if(target) target.classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.remove('active');});
+  const tab=document.getElementById('tab-'+v); if(tab) tab.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AUTH  ── email + password
+   ═══════════════════════════════════════════════════════════════════════ */
+let authMode='signin';
+function renderAuthBody(mode){
+  authMode=mode||authMode||'signin';
+  const body=document.getElementById('auth-body'); if(!body) return;
+  const isSignup=authMode==='signup';
+  body.innerHTML=
+    '<div class="auth-card">'
+    +'<div class="auth-toggle">'
+    +'<button class="'+(!isSignup?'active':'')+'" onclick="renderAuthBody(\'signin\')">Sign in</button>'
+    +'<button class="'+(isSignup?'active':'')+'" onclick="renderAuthBody(\'signup\')">Create account</button>'
+    +'</div>'
+    +(isSignup?'<div class="auth-field"><label>Your name</label><input class="auth-input" id="auth-name" type="text" placeholder="e.g. Alex P." autocomplete="name"></div>':'')
+    +'<div class="auth-field"><label>Email</label><input class="auth-input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"></div>'
+    +'<div class="auth-field"><label>Password</label><input class="auth-input" id="auth-pw" type="password" placeholder="'+(isSignup?'At least 6 characters':'Your password')+'" autocomplete="'+(isSignup?'new-password':'current-password')+'" onkeydown="if(event.key===\'Enter\')submitAuth(authMode)"></div>'
+    +'<button class="auth-submit" id="auth-submit-btn" onclick="submitAuth(authMode)">'+(isSignup?'Create account':'Sign in')+'</button>'
+    +'<div class="auth-error" id="auth-error"></div>'
+    +'<div class="auth-note">'+(isSignup?'Create an account to build your profile, add a photo, and message other members.':'Welcome back — sign in to see your matches and messages.')+'</div>'
+    +'</div>';
+}
+function submitAuth(mode){
+  if(!FIREBASE_READY) return;
+  const email=((document.getElementById('auth-email')||{}).value||'').trim();
+  const pw=(document.getElementById('auth-pw')||{}).value||'';
+  const err=document.getElementById('auth-error'); if(err) err.textContent='';
+  if(!email||!pw){if(err)err.textContent='Please enter your email and password.';return;}
+  const btn=document.getElementById('auth-submit-btn'); if(btn){btn.disabled=true;btn.textContent='Please wait…';}
+  const fail=function(e){
+    if(err) err.textContent=friendlyAuthError(e);
+    if(btn){btn.disabled=false;btn.textContent=mode==='signup'?'Create account':'Sign in';}
+  };
+  if(mode==='signup'){
+    const name=((document.getElementById('auth-name')||{}).value||'').trim();
+    auth.createUserWithEmailAndPassword(email,pw).then(function(cred){
+      if(name&&cred.user) return cred.user.updateProfile({displayName:name});
+    }).catch(fail);
+  }else{
+    auth.signInWithEmailAndPassword(email,pw).catch(fail);
+  }
+}
+function friendlyAuthError(e){
+  const code=(e&&e.code)||'';
+  if(code.indexOf('email-already-in-use')>=0) return 'That email already has an account — try signing in instead.';
+  if(code.indexOf('invalid-email')>=0) return 'That email address looks invalid.';
+  if(code.indexOf('weak-password')>=0) return 'Password should be at least 6 characters.';
+  if(code.indexOf('wrong-password')>=0||code.indexOf('invalid-credential')>=0) return 'Incorrect email or password.';
+  if(code.indexOf('user-not-found')>=0) return 'No account found with that email — create one above.';
+  if(code.indexOf('too-many-requests')>=0) return 'Too many attempts. Please wait a moment and try again.';
+  if(code.indexOf('network')>=0) return 'Network error — check your connection and try again.';
+  return (e&&e.message)||'Something went wrong. Please try again.';
+}
+function signOutUser(){
+  if(previewMode){ window.location.reload(); return; }
+  if(auth) auth.signOut();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PROFILE PERSISTENCE  ── Firestore + Storage
+   ═══════════════════════════════════════════════════════════════════════ */
+function saveMyProfile(){
+  // Make sure derived/search fields exist whether or not we end up writing to Firestore
+  if(myProfile.name) myProfile.nameLower=String(myProfile.name).trim().toLowerCase();
+  if(!myProfile.inviteCode) myProfile.inviteCode=generateInviteCode();
+  if(!db||!myUid){ refreshInviteUI(); return Promise.resolve(); }
+  const writeDoc=function(){
+    const data=Object.assign({},myProfile);
+    data.uid=myUid;
+    data.profileComplete=true;
+    data.email=currentUser?currentUser.email:'';
+    data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+    if(data.photoURL&&String(data.photoURL).startsWith('blob:')) delete data.photoURL;
+    data.tags=buildTags(data);
+    return db.collection('users').doc(myUid).set(data,{merge:true}).then(refreshInviteUI);
+  };
+  if(pendingPhotoFile&&storage){
+    const ref=storage.ref('avatars/'+myUid+'/profile_'+Date.now());
+    return ref.put(pendingPhotoFile)
+      .then(function(snap){return snap.ref.getDownloadURL();})
+      .then(function(url){myProfile.photoURL=url;pendingPhotoFile=null;return writeDoc();})
+      .catch(function(e){console.warn('photo upload failed',e);toast('Photo upload failed — saving your profile without it for now.');return writeDoc();});
+  }
+  return writeDoc();
+}
+
+function loadRealUsers(){
+  realUsers=[];
+  if(!db||!myUid) return Promise.resolve();
+  return db.collection('users').where('profileComplete','==',true).get().then(function(snap){
+    snap.forEach(function(doc){
+      if(doc.id===myUid) return;
+      const u=doc.data(); u.id=doc.id;
+      if(!u.tags||!u.tags.length) u.tags=buildTags(u);
+      if(!u.about) u.about='New Cornsworth member.';
+      if(!u.emoji) u.emoji='🙂';
+      if(!u.avatarBg) u.avatarBg='#E8EEF5';
+      if(!u.avatarFg) u.avatarFg='#1E3A5F';
+      realUsers.push(u);
+    });
+  }).catch(function(e){console.warn('loadRealUsers failed',e);});
+}
+
+function loadMyProfile(){
+  if(!db||!myUid) return Promise.resolve();
+  return db.collection('users').doc(myUid).get().then(function(doc){
+    const data=doc.exists?doc.data():null;
+    const tabs=document.getElementById('nav-tabs'); if(tabs) tabs.style.display='';
+    if(data&&data.profileComplete){
+      myProfile=data; profileComplete=true;
+      unlockTabs(); updateNavAvatar(); refreshInviteUI();
+      return loadRealUsers().then(function(){ buildMatches(); });
+    }else{
+      myProfile=data||{};
+      if(!myProfile.name&&currentUser&&currentUser.displayName) myProfile.name=currentUser.displayName;
+      profileComplete=false;
+      ['matches','friends','messages'].forEach(function(t){var el=document.getElementById('tab-'+t);if(el)el.classList.add('locked');});
+      updateNavAvatar();
+      obStep=0; renderOB(); forceView('profile');
+    }
+  }).catch(function(e){
+    console.warn('loadMyProfile failed',e);
+    obStep=0; renderOB(); forceView('profile');
+  });
+}
+
+function finishOnboarding(){
+  if(!myProfile.name||!myProfile.name.trim()){
+    toast('Please add a display name on the first step.');
+    obStep=0; renderOB(); window.scrollTo({top:0,behavior:'smooth'}); return;
+  }
+  const btn=document.querySelector('#ob-form-area .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  saveMyProfile()
+    .then(function(){return loadRealUsers();})
+    .then(function(){ updateNavAvatar(); buildMatches(); })
+    .catch(function(e){
+      console.warn('finish onboarding error',e);
+      toast('Could not save your profile: '+((e&&e.message)||e));
+      if(btn){btn.disabled=false;btn.textContent=profileComplete?'Save changes →':'Find my matches →';}
+    });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SETUP NOTICE  (shown until Firebase config is filled in)
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderSetupScreen(){
+  const body=document.getElementById('auth-body'); if(!body) return;
+  body.innerHTML=
+    '<div class="setup-card">'
+    +'<h2>Just want to look around?</h2>'
+    +'<p>Click below to open the app in preview mode — you can build a profile, browse the views, and see how everything looks. Nothing is saved; refreshing wipes it.</p>'
+    +'<button class="auth-submit" style="margin-bottom:18px;" onclick="startPreview()">Preview the app →</button>'
+    +'<hr style="border:none;border-top:1px solid var(--border2);margin:8px 0 18px;">'
+    +'<h2 style="font-size:21px;">When you\'re ready for real accounts</h2>'
+    +'<p>To let people actually sign in, upload photos, and message each other over the internet, the app needs a free Firebase backend. About 10 minutes of clicking — no coding.</p>'
+    +'<ol>'
+    +'<li>Open <code>CORNSWORTH-SETUP.md</code> (saved next to this app) and follow it.</li>'
+    +'<li>Paste your Firebase config near the top of this HTML file, replacing <code>PASTE_YOUR_API_KEY_HERE</code> and the other placeholders.</li>'
+    +'<li>Reload the page — this screen will be replaced by the real sign-in form.</li>'
+    +'</ol>'
+    +'<p style="margin-bottom:0;color:var(--text3);font-size:12.5px">Preview mode is just for looking — it doesn\'t talk to the internet at all.</p>'
+    +'</div>';
+}
+
+function startPreview(){
+  previewMode=true;
+  currentUser={uid:'preview-user',email:'preview@local',displayName:''};
+  myUid='preview-user';
+  myProfile={};
+  showNavUser(true);
+  const tabs=document.getElementById('nav-tabs'); if(tabs) tabs.style.display='';
+  ['matches','friends','messages'].forEach(function(t){const el=document.getElementById('tab-'+t); if(el) el.classList.add('locked');});
+  updateNavAvatar();
+  obStep=0;
+  renderOB();
+  forceView('profile');
+  toast('Preview mode — looks only. Nothing you do here is saved.');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════════════ */
+function boot(){
+  if(!FIREBASE_READY){
+    const tabs=document.getElementById('nav-tabs'); if(tabs) tabs.style.display='none';
+    showNavUser(false);
+    renderSetupScreen();
+    forceView('auth');
+    return;
+  }
+  renderAuthBody('signin');
+  forceView('auth');
+  auth.onAuthStateChanged(function(user){
+    if(user){
+      currentUser=user; myUid=user.uid;
+      showNavUser(true);
+      loadMyProfile();
+      subscribeThreads();
+    }else{
+      currentUser=null; myUid=null;
+      if(msgUnsub){msgUnsub();msgUnsub=null;}
+      if(threadsUnsub){threadsUnsub();threadsUnsub=null;}
+      myProfile={}; obStep=0; profileComplete=false;
+      computedMatches=[]; realUsers=[]; myConversations=[];
+      matchStates={}; activeThread=null; friends=[];
+      showNavUser(false);
+      const tabs=document.getElementById('nav-tabs'); if(tabs) tabs.style.display='none';
+      renderAuthBody('signin');
+      forceView('auth');
+    }
+  });
+}
+boot();
+</script>
+</body>
+</html>
