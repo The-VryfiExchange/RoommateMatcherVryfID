@@ -1641,7 +1641,7 @@ function sendMsg(id){
 /* ═══════════════════════════════════════════════════════════════════════
    HELPERS  ── id handling, escaping, avatars, toasts
    ═══════════════════════════════════════════════════════════════════════ */
-function jid(id){return JSON.stringify(String(id));}   // safe quoted literal for inline handlers
+function jid(id){return "'"+String(id).replace(/'/g,"\\'")+"'";}   // single-quoted literal safe inside double-quoted onclick attrs
 function findMatch(id){return computedMatches.find(function(x){return String(x.id)===String(id);});}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
 function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
