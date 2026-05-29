@@ -333,6 +333,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .m-avatar img,.tc-avatar img,.modal-av img,.th-avatar img,.chat-avatar img,.fr-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 .m-avatar,.tc-avatar,.modal-av,.th-avatar,.chat-avatar,.fr-avatar{overflow:hidden;}
 .sample-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;background:var(--bg3);color:var(--text3);}
+.vryfid-text{font-weight:600;letter-spacing:-.01em;}.vryfid-text .vid-id{color:#4CAF7D;}
 </style>
 </head>
 <body>
@@ -363,7 +364,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 <div class="view" id="view-profile">
   <div class="ob-wrap">
     <div id="ob-hero">
-      <div class="ob-eyebrow">VryfID · Alpha</div>
+      <div class="ob-eyebrow"><span class="vryfid-text">Vryf<span class="vid-id">ID</span></span> · Alpha</div>
       <div class="ob-title">Find a roommate who <em>gets it.</em></div>
       <div class="ob-sub">Answer a few questions about how you live. Our algorithm encodes your lifestyle and ranks every match by Bayesian compatibility — not just vibes.</div>
     </div>
@@ -1717,7 +1718,7 @@ function loadRealUsers(){
       if(doc.id===myUid) return;
       const u=doc.data(); u.id=doc.id;
       if(!u.tags||!u.tags.length) u.tags=buildTags(u);
-      if(!u.about) u.about='New VryfID member.';
+      if(!u.about) u.about='New VryfID member. ✓';
       if(!u.emoji) u.emoji='🙂';
       if(!u.avatarBg) u.avatarBg='#E8EEF5';
       if(!u.avatarFg) u.avatarFg='#1E3A5F';
