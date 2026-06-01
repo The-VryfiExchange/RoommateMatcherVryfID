@@ -576,23 +576,20 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
     <div class="matches-header">
       <div>
         <div class="matches-title">Your <em>matches</em></div>
-        <div class="matches-sub" id="matches-sub">Ranked by compatibility · Dealbreakers filtered</div>
+        <div class="matches-sub" id="matches-sub">Ranked by compatibility</div>
       </div>
-      <div class="view-toggle">
-        <button class="vt-btn active" id="vt-chart" onclick="setViewMode('chart')">📊 Chart</button>
-        <button class="vt-btn" id="vt-tinder" onclick="setViewMode('tinder')">🃏 Swipe</button>
-      </div>
+      <span class="f-count" id="f-count"></span>
     </div>
-    <!-- category filter -->
-    <div class="cat-row" id="cat-row"></div>
+    <div class="cat-row" id="cat-row" style="display:none;"></div>
     <div class="filter-row" id="filter-row">
       <button class="f-chip on" data-f="all" onclick="setFilter('all',this)">All</button>
-      <button class="f-chip" data-f="high" onclick="setFilter('high',this)">Strong ≥75%</button>
-      <button class="f-chip" data-f="religion" onclick="setFilter('religion',this)">Same religion</button>
-      <button class="f-chip" data-f="wfh" onclick="setFilter('wfh',this)">WFH friendly</button>
-      <button class="f-chip" data-f="budget" onclick="setFilter('budget',this)">Budget match</button>
-      <button class="f-chip" data-f="near" onclick="setFilter('near',this)">📍 Nearby</button>
-      <span class="f-count" id="f-count"></span>
+      <button class="f-chip" data-f="high" onclick="setFilter('high',this)">Top matches</button>
+      <button class="f-chip" data-f="budget" onclick="setFilter('budget',this)">Similar budget</button>
+      <button class="f-chip" data-f="near" onclick="setFilter('near',this)">📍 Same area</button>
+    </div>
+    <div class="view-toggle" style="display:none;">
+      <button class="vt-btn active" id="vt-chart">Chart</button>
+      <button class="vt-btn" id="vt-tinder">Swipe</button>
     </div>
     <div id="matches-content"></div>
   </div>
