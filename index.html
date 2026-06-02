@@ -392,6 +392,26 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .land-cta p{font-size:15px;color:var(--text2);margin-bottom:28px;line-height:1.6;}
 
 .land-footer{text-align:center;padding:24px;font-size:12px;color:var(--text3);border-top:1px solid var(--border2);}
+
+/* ═══════════════ WEIGHT PANEL ═══════════════ */
+.weight-panel{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);margin-bottom:18px;overflow:hidden;}
+.weight-panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;cursor:pointer;user-select:none;transition:background .15s;}
+.weight-panel-header:hover{background:var(--bg);}
+.weight-panel-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);}
+.weight-panel-chevron{font-size:11px;color:var(--text3);transition:transform .2s;}
+.weight-panel.open .weight-panel-chevron{transform:rotate(180deg);}
+.weight-panel-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px;}
+.weight-panel.open .weight-panel-body{max-height:500px;padding:0 22px 20px;}
+.weight-panel-sub{font-size:11px;color:var(--text3);margin-bottom:16px;}
+.weight-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;}
+@media(max-width:540px){.weight-grid{grid-template-columns:1fr;}}
+.weight-row-item{display:flex;flex-direction:column;gap:4px;}
+.weight-row-top{display:flex;align-items:center;justify-content:space-between;}
+.weight-key-label{font-size:11px;font-weight:600;color:var(--text);}
+.weight-key-val{font-size:11px;font-weight:700;color:var(--rust);min-width:28px;text-align:right;}
+.weight-locked{font-size:10px;color:var(--text3);font-style:italic;}
+.w-slider{-webkit-appearance:none;width:100%;height:3px;background:var(--bg3);border-radius:2px;outline:none;}
+.w-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--rust);border:2px solid #fff;box-shadow:0 0 0 1px var(--rust);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -580,6 +600,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
       </div>
       <span class="f-count" id="f-count"></span>
     </div>
+    <div class="weight-panel open" id="weight-panel"></div>
     <div class="cat-row" id="cat-row" style="display:none;"></div>
     <div class="filter-row" id="filter-row">
       <button class="f-chip on" data-f="all" onclick="setFilter('all',this)">All</button>
@@ -729,9 +750,30 @@ function unlockTabs(){['matches','friends','messages'].forEach(t=>{document.getE
 function P(key,val,multi=false){
   if(multi){if(!myProfile[key])myProfile[key]=[];const i=myProfile[key].indexOf(val);i>-1?myProfile[key].splice(i,1):myProfile[key].push(val);}
   else{myProfile[key]=val;}
-  renderOB();
+  // Update button states in-place instead of re-rendering the whole form
+  updateOptStates(key,multi);
 }
-function DB(key){if(!myProfile.dealbreakers)myProfile.dealbreakers={};myProfile.dealbreakers[key]=!myProfile.dealbreakers[key];renderOB();}
+function DB(key){if(!myProfile.dealbreakers)myProfile.dealbreakers={};myProfile.dealbreakers[key]=!myProfile.dealbreakers[key];
+  // Toggle the dealbreaker button in-place
+  var btn=event&&event.target?event.target.closest('.db-btn'):null;
+  if(btn){var on=myProfile.dealbreakers[key];btn.classList.toggle('on',on);btn.innerHTML='<span class="db-dot"></span>'+(on?'✓ Dealbreaker':'Dealbreaker?');}
+}
+function updateOptStates(key,multi){
+  var area=document.getElementById('ob-form-area');if(!area) return;
+  var buttons=area.querySelectorAll('.opt');
+  buttons.forEach(function(btn){
+    var onclick=btn.getAttribute('onclick')||'';
+    if(onclick.indexOf("'"+key+"'")>=0){
+      // Extract the value from the onclick: P('key','val',...)
+      var m=onclick.match(/P\('[^']+','([^']+)'/);
+      if(m){
+        var v=m[1];
+        var isActive=multi?(myProfile[key]||[]).includes(v):myProfile[key]===v;
+        btn.classList.toggle('on',isActive);
+      }
+    }
+  });
+}
 function isOn(k,v,m=false){return m?(myProfile[k]||[]).includes(v):myProfile[k]===v;}
 function dbOn(k){return !!(myProfile.dealbreakers&&myProfile.dealbreakers[k]);}
 function opts(key,items,multi=false,cls=''){
@@ -967,8 +1009,13 @@ const DIET_OPTS=['vegan','vegetarian','halal','kosher','none'];
 const REL_OPTS=['christian','muslim','jewish','hindu','buddhist','other','none'];
 const LANG_OPTS=['en','es','fr','zh','ar','other'];
 const DB_FIELDS=['smoking','pets','noise','guests','overnight','wfh','cleanliness','diet','drinking','religion','observance','budget','bills','social_level'];
-const GROUPS=[{k:'habits',w:1.2,n:5},{k:'home',w:1.0,n:5},{k:'lifestyle',w:1.3,n:11},{k:'finances',w:.8,n:2},{k:'identity',w:1.5,n:16}];
-const GRP_COLORS={habits:'#4A9EFF',home:'#A87FFF',lifestyle:'#3FD68A',finances:'#F0A830',identity:'#E8609A'};
+const WEIGHT_DEFAULTS={budget:2.5,location:2.5,lifestyle:1.5,identity:1.3,home:1.0,habits:0.8};
+let userWeights=Object.assign({},WEIGHT_DEFAULTS);
+const WEIGHT_LABELS={budget:'Budget',location:'Location',lifestyle:'Lifestyle',identity:'Identity',home:'Home',habits:'Habits'};
+const WEIGHT_LOCKED={budget:false,location:false,lifestyle:false,identity:false,home:false,habits:false};
+const GROUPS=[{k:'habits',w:function(){return userWeights.habits;},n:5},{k:'home',w:function(){return userWeights.home;},n:5},{k:'lifestyle',w:function(){return userWeights.lifestyle;},n:10},{k:'finances',w:function(){return userWeights.budget;},n:2},{k:'identity',w:function(){return userWeights.identity;},n:16}];
+const GRP_COLORS={habits:'#4A9EFF',home:'#A87FFF',lifestyle:'#3FD68A',finances:'#F0A830',identity:'#E8609A',budget:'#F0A830',location:'#3D7A5A'};
+const SCORE_ORDER=['budget','location','lifestyle','identity','home','habits'];
 
 function encode(p){
   const v=[];const push=x=>v.push(parseFloat((x||0).toFixed(4)));
@@ -988,35 +1035,66 @@ function encode(p){
 }
 
 function computeScore(vA,vB,pA,pB){
-  const prefDims=GROUPS.reduce((s,g)=>s+g.n,0);
+  const prefDims=GROUPS.reduce(function(s,g){return s+g.n;},0);
   const dbA=vA.slice(prefDims);
-  const blocks=[];
-  const dbKeys=DB_FIELDS;
-  for(let i=0;i<dbA.length;i++){
+  var blocks=[];
+  var dbKeys=DB_FIELDS;
+  for(var i=0;i<dbA.length;i++){
     if(dbA[i]===1){
-      const fld=dbKeys[i];
+      var fld=dbKeys[i];
       if(fld==='smoking'&&(vB[10]||0)>0) blocks.push('No smoking');
       if(fld==='pets'&&(vB[12]||0)>0) blocks.push('No pets');
       if(fld==='diet'){
-        const myDiet=pA.diet||[];const pDiet=pB.diet||[];
+        var myDiet=pA.diet||[];var pDiet=pB.diet||[];
         if(myDiet.includes('halal')&&!pDiet.includes('halal')&&!pDiet.includes('none')) blocks.push('Halal conflict');
         if(myDiet.includes('kosher')&&!pDiet.includes('kosher')&&!pDiet.includes('none')) blocks.push('Kosher conflict');
       }
     }
   }
-  if(blocks.length>0) return{score:0,blocked:true,blocks,groupScores:{}};
-  let offset=0,totalDist=0,totalW=0;const groupScores={};
-  GROUPS.forEach(g=>{
-    let d2=0;for(let i=0;i<g.n;i++){const diff=(vA[offset+i]||0)-(vB[offset+i]||0);d2+=diff*diff;}
-    const gd=Math.sqrt(d2/g.n);const sigma=0.5,gamma=2;
-    groupScores[g.k]=Math.round(Math.exp(-gamma*gd*gd)*100);
-    totalDist+=g.w*gd*gd;totalW+=g.w;offset+=g.n;
+  if(blocks.length>0) return{score:0,blocked:true,blocks:blocks,groupScores:{}};
+
+  /* ── location similarity ── */
+  var locSim=0.3;
+  if(pA.neighborhood&&pB.neighborhood&&pA.neighborhood===pB.neighborhood) locSim=1.0;
+  else if(pA.city&&pB.city&&pA.city===pB.city) locSim=0.7;
+  else if(pA.borough&&pB.borough&&(pA.borough===pB.borough||pA.borough==='Either'||pB.borough==='Either')) locSim=0.7;
+
+  /* ── budget similarity ── */
+  var bA=(pA.budget||1500)/5000, bB=(pB.budget||1500)/5000;
+  var budgetSim=Math.max(0,1-Math.abs(bA-bB)*2);
+
+  /* ── vector-based group scores ── */
+  var offset=0,totalDist=0,totalW=0;
+  var groupScores={};
+  GROUPS.forEach(function(g){
+    var gw=(typeof g.w==='function')?g.w():g.w;
+    var d2=0;for(var j=0;j<g.n;j++){var diff=(vA[offset+j]||0)-(vB[offset+j]||0);d2+=diff*diff;}
+    var gd=Math.sqrt(d2/g.n);
+    groupScores[g.k]=Math.round(Math.max(0,1-gd)*100);
+    totalDist+=gw*gd*gd;totalW+=gw;offset+=g.n;
   });
-  const wd=Math.sqrt(totalDist/totalW);const K=Math.exp(-2*wd*wd);
-  const prior=0.15,priorOdds=prior/(1-prior);
-  const postOdds=priorOdds*(1+K*2.5);
-  const post=Math.min(0.97,Math.max(0.03,postOdds/(1+postOdds)));
-  return{score:Math.round(post*100),blocked:false,blocks:[],groupScores};
+
+  /* ── add budget & location as scored groups ── */
+  groupScores['budget']=Math.round(budgetSim*100);
+  groupScores['location']=Math.round(locSim*100);
+
+  /* ── weighted average of ALL group scores (including budget & location) ── */
+  var allScores={budget:groupScores['budget'],location:groupScores['location'],
+    habits:groupScores['habits'],home:groupScores['home'],
+    lifestyle:groupScores['lifestyle'],finances:groupScores['finances'],
+    identity:groupScores['identity']};
+  var wSum=0,wTotal=0;
+  Object.keys(allScores).forEach(function(k){
+    var s=allScores[k];if(s===undefined) return;
+    var w=userWeights[k]||1;
+    // Square the weight so slider changes have a bigger impact
+    var w2=w*w;
+    wSum+=w2*s;
+    wTotal+=w2*100;
+  });
+
+  var score=Math.min(99,Math.max(1,Math.round(wSum/wTotal*100)));
+  return{score:score,blocked:false,blocks:[],groupScores:groupScores};
 }
 
 /* (POOL of sample profiles removed — Matches now shows real users only) */
@@ -1128,6 +1206,7 @@ function scoreBand(s){return s>=80?'#3D7A5A':s>=65?'#A07830':'#C0502A';}
 function verdict(s){return s>=80?'Highly compatible':s>=65?'Good match':s>=50?'Moderate':'Low match';}
 
 function renderMatches(){
+  renderWeightPanel();
   // category pills
   const catRow=document.getElementById('cat-row');
   const allCats=[{key:'all',label:'All',color:'#1A1814',bg:'#E8E3D8'},...ROLE_CATS,...LIFESTYLE_CATS];
@@ -1163,9 +1242,8 @@ function renderChartMode(list,content){
     const state=matchStates[m.id]||'none';
     const btnLabel=m.sample?'Sample · view only':state==='messaging'?'💬 Message':'Connect →';
     const btnCls=m.sample?'btn-connect':state==='messaging'?'btn-connect msg':'btn-connect';
-    const barsHtml=Object.entries(m.groupScores||{}).map(([k,v])=>
-      `<div class="mbar-row"><div class="mbar-lbl">${k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`
-    ).join('');
+    const gs=m.groupScores||{};
+    const barsHtml=SCORE_ORDER.filter(k=>gs[k]!=null).map(k=>{const v=gs[k];return `<div class="mbar-row"><div class="mbar-lbl">${WEIGHT_LABELS[k]||k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`;}).join('');
     const tagsHtml=(m.tags||[]).map(t=>`<span class="mtag ${t.c}">${t.l}</span>`).join('');
     const cc=catColor(m);
     const diffBadge=m.noNbhdOverlap?' <span style="background:var(--gold-l);color:var(--gold);font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:20px;margin-left:4px;">DIFFERENT NEIGHBORHOOD</span>':'';
@@ -1332,9 +1410,8 @@ function openModal(id){
   const state=matchStates[id]||'none';
   const btnLabel=m.sample?'Sample profile — view only':state==='messaging'?'💬 Open conversation':'Send connect request';
   const btnCls=m.sample?'modal-btn modal-btn-sec':state==='messaging'?'modal-btn modal-btn-primary msg':'modal-btn modal-btn-primary';
-  const barsHtml=Object.entries(m.groupScores||{}).map(([k,v])=>
-    `<div class="mbar-row"><div class="mbar-lbl">${k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`
-  ).join('');
+  const mgs=m.groupScores||{};
+  const barsHtml=SCORE_ORDER.filter(k=>mgs[k]!=null).map(k=>{const v=mgs[k];return `<div class="mbar-row"><div class="mbar-lbl">${WEIGHT_LABELS[k]||k}</div><div class="mbar-track"><div class="mbar-fill" style="width:${v}%;background:${GRP_COLORS[k]||'#888'};"></div></div><div class="mbar-val">${v}%</div></div>`;}).join('');
   const cc=catColor(m);
   document.getElementById('modal-topband').style.background=scoreBand(m.score);
   document.getElementById('modal-inner').innerHTML=
@@ -1691,6 +1768,65 @@ function toast(msg){
   }
   t.textContent=msg; t.style.opacity='1';
   clearTimeout(t._timer); t._timer=setTimeout(function(){t.style.opacity='0';},4200);
+}
+
+/* ── WEIGHT PANEL ── */
+function weightPct(val){return Math.round((val/5)*100)+'%';}
+
+function renderWeightPanel(){
+  var panel=document.getElementById('weight-panel');
+  if(!panel) return;
+  var rows=SCORE_ORDER.map(function(key){
+    var lbl=WEIGHT_LABELS[key]||key;
+    var val=userWeights[key];
+    var pct=weightPct(val);
+    var col=GRP_COLORS[key]||'var(--text2)';
+    return '<div class="weight-row-item">'
+      +'<div class="weight-row-top"><span class="weight-key-label" style="color:'+col+'">'+esc(lbl)+'</span><span class="weight-key-val" style="color:'+col+'" id="wv-'+key+'">'+pct+'</span></div>'
+      +'<input type="range" class="w-slider" min="0" max="5" step="0.1" value="'+val+'" oninput="setWeight(\''+key+'\',this.value)">'
+      +'</div>';
+  }).join('');
+  var wasOpen=panel.classList.contains('open');
+  panel.innerHTML=
+    '<div class="weight-panel-header" onclick="toggleWeightPanel()">'
+    +'<span class="weight-panel-title">⚖️ What matters most to you?</span>'
+    +'<span class="weight-panel-chevron">▼</span>'
+    +'</div>'
+    +'<div class="weight-panel-body">'
+    +'<div class="weight-panel-sub">Drag sliders to adjust how much each factor affects your match scores.</div>'
+    +'<div class="weight-grid">'+rows+'</div>'
+    +'<div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">'
+    +'<button class="btn btn-ghost" style="padding:6px 14px;font-size:11px;" onclick="resetWeights()">Reset defaults</button>'
+    +'</div></div>';
+  if(wasOpen) panel.classList.add('open');
+}
+
+function setWeight(key,val){
+  userWeights[key]=parseFloat(val);
+  var el=document.getElementById('wv-'+key);
+  if(el) el.textContent=weightPct(parseFloat(val));
+  // Live re-score without full rebuild (avoids flicker)
+  if(profileComplete&&computedMatches.length){
+    var myVec=encode(myProfile);
+    computedMatches.forEach(function(m){
+      var pVec=encode(m);
+      var result=computeScore(myVec,pVec,myProfile,m);
+      m.score=Math.min(99,result.score+(m.isFriend?5:0));
+      m.groupScores=result.groupScores;
+    });
+    computedMatches.sort(function(a,b){return b.score-a.score;});
+    renderMatches();
+  }
+}
+
+function toggleWeightPanel(){
+  var panel=document.getElementById('weight-panel');
+  if(panel) panel.classList.toggle('open');
+}
+
+function resetWeights(){
+  userWeights=Object.assign({},WEIGHT_DEFAULTS);
+  renderWeightPanel();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
