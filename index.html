@@ -1922,6 +1922,7 @@ function renderAuthBody(mode){
     +'<div class="auth-field"><label>Email</label><input class="auth-input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"></div>'
     +'<div class="auth-field"><label>Password</label><input class="auth-input" id="auth-pw" type="password" placeholder="'+(isSignup?'At least 6 characters':'Your password')+'" autocomplete="'+(isSignup?'new-password':'current-password')+'" onkeydown="if(event.key===\'Enter\')submitAuth(authMode)"></div>'
     +'<button class="auth-submit" id="auth-submit-btn" onclick="submitAuth(authMode)">'+(isSignup?'Create account':'Sign in')+'</button>'
+    +(!isSignup?'<div style="text-align:center;margin-top:10px;"><button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text3);font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;cursor:pointer;text-decoration:underline;">Forgot password?</button></div>':'')
     +'<div class="auth-error" id="auth-error"></div>'
     +'<div class="auth-note">'+(isSignup?'Create an account to build your profile, add a photo, and message other members.':'Welcome back — sign in to see your matches and messages.')+'</div>'
     +'</div>';
@@ -1946,6 +1947,34 @@ function submitAuth(mode){
     auth.signInWithEmailAndPassword(email,pw).catch(fail);
   }
 }
+function showForgotPassword(){
+  const body=document.getElementById('auth-body'); if(!body) return;
+  body.innerHTML=
+    '<div class="auth-card">'
+    +'<div style="font-family:\'Playfair Display\',serif;font-size:20px;margin-bottom:6px;">Reset your password</div>'
+    +'<div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;">Enter the email you signed up with and we\'ll send you a link to reset your password.</div>'
+    +'<div class="auth-field"><label>Email</label><input class="auth-input" id="reset-email" type="email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key===\'Enter\')sendResetEmail()"></div>'
+    +'<button class="auth-submit" id="reset-btn" onclick="sendResetEmail()">Send reset link</button>'
+    +'<div class="auth-error" id="auth-error"></div>'
+    +'<div style="text-align:center;margin-top:14px;"><button onclick="renderAuthBody(\'signin\')" style="background:none;border:none;color:var(--text3);font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;cursor:pointer;text-decoration:underline;">← Back to sign in</button></div>'
+    +'</div>';
+}
+function sendResetEmail(){
+  if(!FIREBASE_READY||!auth) return;
+  var email=((document.getElementById('reset-email')||{}).value||'').trim();
+  var err=document.getElementById('auth-error');
+  if(!email){if(err) err.textContent='Please enter your email.';return;}
+  var btn=document.getElementById('reset-btn');
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  auth.sendPasswordResetEmail(email).then(function(){
+    if(err){err.style.color='var(--green)';err.textContent='Reset link sent! Check your inbox (and spam folder).';}
+    if(btn){btn.textContent='Sent ✓';}
+  }).catch(function(e){
+    if(err){err.style.color='var(--rust)';err.textContent=friendlyAuthError(e);}
+    if(btn){btn.disabled=false;btn.textContent='Send reset link';}
+  });
+}
+
 function friendlyAuthError(e){
   const code=(e&&e.code)||'';
   if(code.indexOf('email-already-in-use')>=0) return 'That email already has an account — try signing in instead.';
