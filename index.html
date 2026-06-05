@@ -333,6 +333,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .photo-upload-btn{display:inline-block;padding:9px 16px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;transition:all .18s;}
 .photo-upload-btn:hover{border-color:var(--text3);}
 .photo-hint{font-size:11px;color:var(--text3);margin-top:6px;}
+.photo-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+.photo-grid-item{width:80px;height:80px;border-radius:14px;overflow:hidden;position:relative;flex-shrink:0;}
+.photo-grid-item img{width:100%;height:100%;object-fit:cover;}
+.photo-grid-item .photo-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
+.photo-grid-item:hover .photo-remove{opacity:1;}
+.photo-grid-add{width:80px;height:80px;border-radius:14px;border:2px dashed var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text3);cursor:pointer;flex-shrink:0;transition:border-color .15s;}
+.photo-grid-add:hover{border-color:var(--text3);}
 .auth-textarea{width:100%;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:74px;line-height:1.6;}
 .auth-textarea:focus{border-color:var(--rust);}
 
@@ -799,22 +806,20 @@ const NEIGHBORHOODS={
 const OB_CONTENT=[
   ()=>`
     <div class="ob-card-title">Your profile</div>
-    <div class="ob-card-sub">This is what potential roommates see first. Add a photo and a line about yourself.</div>
-    <div class="f"><div class="f-label">Profile photo <span class="f-hint">(recommended)</span></div>
-      <div class="photo-upload">
-        <div class="photo-preview" id="ob-photo-preview">${myProfile.photoURL?`<img src="${myProfile.photoURL}">`:'📷'}</div>
-        <div>
-          <label class="photo-upload-btn" for="ob-photo-input">Choose a photo</label>
-          <input type="file" id="ob-photo-input" accept="image/*" style="display:none" onchange="handlePhotoPick(this)">
-          <div class="photo-hint">JPG or PNG, up to ~5MB. Square works best.</div>
-        </div>
+    <div class="ob-card-sub">This is what potential roommates see first.</div>
+    <div class="f"><div class="f-label">Your photos <span class="f-hint">(up to 4)</span></div>
+      <div class="photo-grid" id="profile-photos">
+        ${(myProfile.photos||[]).map((url,i)=>'<div class="photo-grid-item"><img src="'+url+'"><button class="photo-remove" onclick="removePhoto(\'photos\','+i+')">✕</button></div>').join('')}
+        ${(myProfile.photos||[]).length<4?'<label class="photo-grid-add" for="profile-photo-input">+</label>':''}
       </div>
+      <input type="file" id="profile-photo-input" accept="image/*" style="display:none" onchange="addPhoto(\'photos\',this)">
+      <div class="photo-hint" style="margin-top:8px;">JPG or PNG. First photo is your main profile picture.</div>
     </div>
     <div class="f"><div class="f-label">Display name</div>
       <input class="auth-input" type="text" placeholder="e.g. Alex P." value="${(myProfile.name||'').replace(/"/g,'&quot;')}" oninput="myProfile.name=this.value">
     </div>
-    <div class="f"><div class="f-label">About you <span class="f-hint">(a sentence or two)</span></div>
-      <textarea class="auth-textarea" placeholder="What's your living style? What are you looking for in a roommate?" oninput="myProfile.about=this.value">${(myProfile.about||'').replace(/</g,'&lt;')}</textarea>
+    <div class="f"><div class="f-label">About you</div>
+      <textarea class="auth-textarea" placeholder="What's your living style? What are you looking for in a roommate? What do you do for work or school?" oninput="myProfile.about=this.value" style="min-height:100px;">${(myProfile.about||'').replace(/</g,'&lt;')}</textarea>
     </div>`,
 
   ()=>`
@@ -839,6 +844,14 @@ const OB_CONTENT=[
     ${myProfile.role==='offerer'?`<div class="f"><div class="f-label">Room address <span class="f-hint">(only shared with confirmed matches)</span></div>
       <input class="auth-input" type="text" placeholder="e.g. 123 W 4th St, Apt 5B" value="${esc(myProfile.address||'')}" oninput="myProfile.address=this.value">
       <div style="font-size:11px;color:var(--text3);margin-top:5px;">🔒 This is never shown publicly — only people you connect with can see it.</div>
+    </div>
+    <div class="f"><div class="f-label">Room photos <span class="f-hint">(up to 6)</span></div>
+      <div class="photo-grid" id="room-photos">
+        ${(myProfile.roomPhotos||[]).map((url,i)=>'<div class="photo-grid-item"><img src="'+url+'"><button class="photo-remove" onclick="removePhoto(\'roomPhotos\','+i+')">✕</button></div>').join('')}
+        ${(myProfile.roomPhotos||[]).length<6?'<label class="photo-grid-add" for="room-photo-input">+</label>':''}
+      </div>
+      <input type="file" id="room-photo-input" accept="image/*" style="display:none" onchange="addPhoto(\'roomPhotos\',this)">
+      <div class="photo-hint" style="margin-top:8px;">Show off the space! Bedroom, common areas, bathroom, kitchen.</div>
     </div>`:''}`,
 
   ()=>`
@@ -961,28 +974,41 @@ function renderBoroughNeighborhoods(){
   return html;
 }
 
-function handlePhotoPick(input){
-  const file=input.files&&input.files[0];
-  if(!file) return;
-  if(file.size>5*1024*1024){alert('That image is larger than 5MB — please choose a smaller one.');input.value='';return;}
+function compressImage(file,maxSize,cb){
   const reader=new FileReader();
   reader.onload=function(e){
     const img=new Image();
     img.onload=function(){
-      const max=200,w=img.width,h=img.height;
+      const max=maxSize,w=img.width,h=img.height;
       const scale=Math.min(max/w,max/h,1);
       const canvas=document.createElement('canvas');
       canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const dataURL=canvas.toDataURL('image/jpeg',0.7);
-      myProfile.photoURL=dataURL;
-      pendingPhotoFile=null;
-      const pv=document.getElementById('ob-photo-preview');
-      if(pv) pv.innerHTML='<img src="'+dataURL+'">';
+      cb(canvas.toDataURL('image/jpeg',0.7));
     };
     img.src=e.target.result;
   };
   reader.readAsDataURL(file);
+}
+function addPhoto(key,input){
+  var file=input.files&&input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){alert('Image too large — please choose one under 5MB.');input.value='';return;}
+  var maxSize=key==='roomPhotos'?800:200;
+  compressImage(file,maxSize,function(dataURL){
+    if(!myProfile[key]) myProfile[key]=[];
+    myProfile[key].push(dataURL);
+    // Keep legacy photoURL for backwards compat
+    if(key==='photos'&&myProfile[key].length===1) myProfile.photoURL=dataURL;
+    input.value='';
+    renderOB();
+  });
+}
+function removePhoto(key,idx){
+  if(!myProfile[key]) return;
+  myProfile[key].splice(idx,1);
+  if(key==='photos') myProfile.photoURL=myProfile[key][0]||'';
+  renderOB();
 }
 
 function renderOB(){
