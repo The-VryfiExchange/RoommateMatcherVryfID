@@ -835,7 +835,11 @@ const OB_CONTENT=[
     ${renderBoroughNeighborhoods()}
     <div class="f"><div class="f-label">Other neighborhood <span class="f-hint">(optional)</span></div>
       <input class="auth-input" type="text" placeholder="Type a neighborhood not listed above…" value="${esc(myProfile.customNeighborhood||'')}" oninput="myProfile.customNeighborhood=this.value;if(this.value.trim())myProfile.neighborhood=this.value.trim();">
-    </div>`,
+    </div>
+    ${myProfile.role==='offerer'?`<div class="f"><div class="f-label">Room address <span class="f-hint">(only shared with confirmed matches)</span></div>
+      <input class="auth-input" type="text" placeholder="e.g. 123 W 4th St, Apt 5B" value="${esc(myProfile.address||'')}" oninput="myProfile.address=this.value">
+      <div style="font-size:11px;color:var(--text3);margin-top:5px;">🔒 This is never shown publicly — only people you connect with can see it.</div>
+    </div>`:''}`,
 
   ()=>`
     <div class="ob-card-title">Daily habits</div>
