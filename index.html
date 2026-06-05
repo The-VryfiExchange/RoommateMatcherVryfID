@@ -256,6 +256,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .msg-row.mine .msg-time{text-align:right;}
 .system-msg{text-align:center;font-size:11px;color:var(--text3);padding:3px 0;}
 .msg-date-sep{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);padding:12px 0 6px;}
+.msg-delete{background:none;border:none;color:rgba(255,255,255,.4);font-size:10px;cursor:pointer;margin-left:6px;padding:0 2px;opacity:0;transition:opacity .15s;}
+.msg-bubble:hover .msg-delete{opacity:1;}
+.msg-delete:hover{color:#fff;}
 .chat-input-row{padding:14px 22px;border-top:1px solid var(--border2);display:flex;gap:8px;background:var(--surface);}
 .chat-input{flex:1;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;}
 .chat-input:focus{border-color:var(--text3);}
@@ -1693,6 +1696,14 @@ function deleteThread(id){
   }).catch(function(e){toast('Could not delete: '+((e&&e.message)||e));});
 }
 
+function deleteMsg(threadId,msgDocId){
+  threadId=String(threadId);msgDocId=String(msgDocId);
+  if(!db||!myUid) return;
+  var cid=convId(myUid,threadId);
+  db.collection('conversations').doc(cid).collection('messages').doc(msgDocId).delete()
+    .catch(function(e){toast('Could not delete message: '+((e&&e.message)||e));});
+}
+
 function openThread(id){
   id=String(id);
   activeThread=id;
@@ -1725,7 +1736,7 @@ function openThread(id){
   msgUnsub=db.collection('conversations').doc(cid).collection('messages')
     .orderBy('createdAt')
     .onSnapshot(function(snap){
-      const msgs=snap.docs.map(function(d){return d.data();});
+      const msgs=snap.docs.map(function(d){var m=d.data();m._docId=d.id;return m;});
       renderRealMessages(id,msgs);
     },function(err){console.warn('messages listener error',err);});
   const dot=document.getElementById('msg-dot'); if(dot) dot.style.display='none';
@@ -1744,9 +1755,10 @@ function renderRealMessages(id,msgs){
       var dayStr=fmtDate(d);
       if(dayStr!==lastDate){lastDate=dayStr;dateSep='<div class="msg-date-sep">'+dayStr+'</div>';}
     }
+    var delBtn=mine&&msg._docId?'<button class="msg-delete" onclick="deleteMsg('+jid(id)+','+jid(msg._docId)+')" title="Delete">✕</button>':'';
     return dateSep+'<div class="msg-row '+(mine?'mine':'theirs')+'"><div>'
       +(!mine?'<div class="msg-time">'+t+'</div>':'')
-      +'<div class="msg-bubble">'+esc(msg.text||'')+'</div>'
+      +'<div class="msg-bubble">'+esc(msg.text||'')+delBtn+'</div>'
       +(mine?'<div class="msg-time">'+t+'</div>':'')
       +'</div></div>';
   }).join('');
