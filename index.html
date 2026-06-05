@@ -612,7 +612,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
         <div class="matches-title">Your <em>matches</em></div>
         <div class="matches-sub" id="matches-sub">Ranked by compatibility</div>
       </div>
-      <span class="f-count" id="f-count"></span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="f-count" id="f-count"></span>
+        <div class="view-toggle">
+          <button class="vt-btn active" id="vt-chart" onclick="setViewMode('chart')">📊 Chart</button>
+          <button class="vt-btn" id="vt-tinder" onclick="setViewMode('tinder')">🃏 Swipe</button>
+        </div>
+      </div>
     </div>
     <div class="weight-panel open" id="weight-panel"></div>
     <div class="cat-row" id="cat-row" style="display:none;"></div>
@@ -621,10 +627,6 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
       <button class="f-chip" data-f="high" onclick="setFilter('high',this)">Top matches</button>
       <button class="f-chip" data-f="budget" onclick="setFilter('budget',this)">Similar budget</button>
       <button class="f-chip" data-f="near" onclick="setFilter('near',this)">📍 Same area</button>
-    </div>
-    <div class="view-toggle" style="display:none;">
-      <button class="vt-btn active" id="vt-chart">Chart</button>
-      <button class="vt-btn" id="vt-tinder">Swipe</button>
     </div>
     <div id="matches-content"></div>
   </div>
