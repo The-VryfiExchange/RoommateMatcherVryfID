@@ -826,8 +826,8 @@ const OB_CONTENT=[
       ${opts('lifestyle_type',[['quiet','🌿 Quiet professional'],['social','🎉 Social & outgoing'],['student','📚 Student'],['remote','💻 Remote worker'],['creative','🎨 Creative'],['mixed','⚖️ Mixed']],true,'three')}</div>
     <div class="f"><div class="f-label" style="color:var(--green);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Borough</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${['Manhattan','Brooklyn','Either'].map(b=>{
-          const on=(b==='Either'?(myProfile.borough==='Either'):(myProfile.borough===b))?'on':'';
+        ${['Manhattan','Brooklyn'].map(b=>{
+          const on=(myProfile.boroughs||[]).includes(b)?'on':'';
           return '<button class="opt '+on+'" style="border-radius:30px;padding:10px 22px;font-size:14px;" onclick="pickBorough(\''+b+'\')">'+b+'</button>';
         }).join('')}
       </div>
@@ -917,29 +917,41 @@ const OB_CONTENT=[
 
 /* ── BOROUGH + NEIGHBORHOOD PICKER ── */
 function pickBorough(b){
-  myProfile.borough=b;
   myProfile.city='New York, NY';
-  myProfile.neighborhood='';
-  myProfile.customNeighborhood='';
+  if(!myProfile.boroughs) myProfile.boroughs=[];
+  var i=myProfile.boroughs.indexOf(b);
+  if(i>=0) myProfile.boroughs.splice(i,1); else myProfile.boroughs.push(b);
+  // Keep legacy single borough for backwards compat
+  myProfile.borough=myProfile.boroughs[0]||'';
+  // Clear neighborhoods not in selected boroughs
+  if(myProfile.neighborhoods){
+    myProfile.neighborhoods=myProfile.neighborhoods.filter(function(n){
+      return myProfile.boroughs.some(function(br){return (NEIGHBORHOODS[br]||[]).includes(n);});
+    });
+  }
+  myProfile.neighborhood=(myProfile.neighborhoods||[])[0]||'';
   renderOB();
 }
 function pickNbhd(n){
-  myProfile.neighborhood=n;
+  if(!myProfile.neighborhoods) myProfile.neighborhoods=[];
+  var i=myProfile.neighborhoods.indexOf(n);
+  if(i>=0) myProfile.neighborhoods.splice(i,1); else myProfile.neighborhoods.push(n);
+  // Keep legacy single neighborhood for backwards compat
+  myProfile.neighborhood=myProfile.neighborhoods[0]||'';
   myProfile.customNeighborhood='';
   renderOB();
 }
 function renderBoroughNeighborhoods(){
-  const b=myProfile.borough;
-  if(!b) return '';
-  const selected=myProfile.neighborhood||'';
-  const boroughs=b==='Either'?['Manhattan','Brooklyn']:[b];
+  var bs=myProfile.boroughs||[];
+  if(!bs.length) return '';
+  var selected=myProfile.neighborhoods||[];
   let html='';
-  boroughs.forEach(function(borough){
+  bs.forEach(function(borough){
     const nbhds=NEIGHBORHOODS[borough]||[];
     html+='<div class="f" style="margin-bottom:14px;"><div class="f-label" style="color:var(--green);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:11px;">'+borough+' <span class="f-hint" style="text-transform:none;letter-spacing:0;">pick any</span></div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:8px;">';
     nbhds.forEach(function(n){
-      const on=selected===n?'on':'';
+      const on=selected.includes(n)?'on':'';
       html+='<button class="opt '+on+'" style="border-radius:30px;padding:10px 20px;font-size:13px;" onclick="pickNbhd(\''+esc(n)+'\')">'+esc(n)+'</button>';
     });
     html+='</div></div>';
@@ -988,8 +1000,8 @@ function renderOB(){
 function obNext(){
   // Step-by-step validation
   if(obStep===1){
-    if(!myProfile.borough){toast('Pick a borough first.');return;}
-    if(!myProfile.neighborhood&&!myProfile.customNeighborhood){toast('Pick a neighborhood — this is how we match you with people in the same area.');return;}
+    if(!(myProfile.boroughs||[]).length){toast('Pick at least one borough.');return;}
+    if(!(myProfile.neighborhoods||[]).length&&!myProfile.customNeighborhood){toast('Pick at least one neighborhood — this is how we match you with people in the same area.');return;}
   }
   if(obStep<OB_STEPS.length-1){obStep++;renderOB();window.scrollTo({top:0,behavior:'smooth'});}else{finishOnboarding();}
 }
@@ -1062,9 +1074,15 @@ function computeScore(vA,vB,pA,pB){
 
   /* ── location similarity ── */
   var locSim=0.3;
-  if(pA.neighborhood&&pB.neighborhood&&pA.neighborhood===pB.neighborhood) locSim=1.0;
-  else if(pA.city&&pB.city&&pA.city===pB.city) locSim=0.7;
-  else if(pA.borough&&pB.borough&&(pA.borough===pB.borough||pA.borough==='Either'||pB.borough==='Either')) locSim=0.7;
+  var nbA=pA.neighborhoods||[pA.neighborhood].filter(Boolean);
+  var nbB=pB.neighborhoods||[pB.neighborhood].filter(Boolean);
+  var brA=pA.boroughs||[pA.borough].filter(Boolean);
+  var brB=pB.boroughs||[pB.borough].filter(Boolean);
+  var nbhdOverlap=nbA.some(function(n){return nbB.includes(n);});
+  var boroOverlap=brA.some(function(b){return brB.includes(b);});
+  if(nbhdOverlap) locSim=1.0;
+  else if(boroOverlap) locSim=0.7;
+  else if(pA.city&&pB.city&&pA.city===pB.city) locSim=0.6;
 
   /* ── budget similarity ── */
   var bA=(pA.budget||1500)/5000, bB=(pB.budget||1500)/5000;
@@ -1155,12 +1173,13 @@ function buildMatches(){
   //    If nobody in the same city has signed up at all, matches stays empty.
   matchesFallback=false;
   const myCity=myProfile.city||'';
-  const myN=myProfile.neighborhood||'';
+  const myNbhds=myProfile.neighborhoods||[myProfile.neighborhood].filter(Boolean);
   // Step 1: hard restrict to the user's city — no cross-metro matches, ever.
   const sameCity = myCity ? scored.filter(m=>m.city===myCity) : scored;
-  // Step 2: within that city, require same neighborhood; otherwise fall back to same-city others.
-  if(myN && sameCity.length>0){
-    const sameNbhd=sameCity.filter(m=>m.neighborhood===myN);
+  // Step 2: within that city, check for neighborhood overlap; otherwise fall back to same-city.
+  if(myNbhds.length && sameCity.length>0){
+    var otherNbhds=function(m){var nb=m.neighborhoods||[m.neighborhood].filter(Boolean);return myNbhds.some(function(n){return nb.includes(n);});};
+    const sameNbhd=sameCity.filter(otherNbhds);
     if(sameNbhd.length>0){
       computedMatches=sameNbhd.sort((a,b)=>b.score-a.score);
     }else{
