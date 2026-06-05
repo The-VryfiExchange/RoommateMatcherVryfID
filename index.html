@@ -821,7 +821,7 @@ const OB_CONTENT=[
     <div class="ob-card-title">Your role & location</div>
     <div class="ob-card-sub">Are you looking for a room or offering one? And where?</div>
     <div class="f"><div class="f-label">I am…</div>
-      ${opts('role',[['seeker','🔍 Looking for a room'],['offerer','🏠 Offering a room'],['both','Both']],false,'three')}</div>
+      ${opts('role',[['seeker','🔍 Looking for a room'],['offerer','🏠 Offering a room']],false,'two')}</div>
     <div class="f"><div class="f-label">Lifestyle type</div>
       ${opts('lifestyle_type',[['quiet','🌿 Quiet professional'],['social','🎉 Social & outgoing'],['student','📚 Student'],['remote','💻 Remote worker'],['creative','🎨 Creative'],['mixed','⚖️ Mixed']],true,'three')}</div>
     <div class="f"><div class="f-label" style="color:var(--green);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Borough</div>
@@ -872,10 +872,8 @@ const OB_CONTENT=[
       ${opts('smoking',[['non-smoker','🚭 Non-smoker'],['outside','Outside only'],['inside','Inside ok']],false,'three')}</div>
     <div class="f"><div class="f-label">Drinking ${dbBtn('drinking')}</div>
       ${opts('drinking',[['never','Never'],['social','Socially'],['regular','Regularly']],false,'three')}</div>
-    <div class="f"><div class="f-label">Pets ${dbBtn('pets')}</div>
-      ${opts('has_pets',[['false','No pets'],['true','I have pets']],false,'two')}</div>
-    <div class="f"><div class="f-label">OK with roommate's pets?</div>
-      ${opts('pets_ok',[['false','No thanks'],['true','Totally fine']],false,'two')}</div>
+    <div class="f"><div class="f-label">Okay with pets? ${dbBtn('pets')}</div>
+      ${opts('pets_ok',[['false','🚫 No pets'],['has','🐾 I have pets'],['true','👍 Fine with pets']],false,'three')}</div>
     <div class="f"><div class="f-label">Diet <span class="f-hint">(select all)</span> ${dbBtn('diet')}</div>
       ${opts('diet',[['vegan','🌱 Vegan'],['vegetarian','Vegetarian'],['halal','☪️ Halal'],['kosher','✡️ Kosher'],['none','No restrictions']],true,'two')}</div>
     <div class="f"><div class="f-label">Social energy ${dbBtn('social_level')}</div>
