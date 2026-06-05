@@ -236,6 +236,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .th-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .th-preview{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
 .th-score{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+.th-delete{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;opacity:0;}
+.thread-item:hover .th-delete{opacity:1;}
+.th-delete:hover{background:var(--rust-l);color:var(--rust);}
 .no-threads{padding:36px 16px;text-align:center;color:var(--text3);font-size:13px;line-height:1.6;}
 .chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .chat-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text3);font-size:14px;}
@@ -1649,8 +1652,33 @@ function renderThreads(){
       +av
       +'<div class="th-info"><div class="th-name">'+esc(name)+'</div><div class="th-preview">'+preview+'</div></div>'
       +scoreBadge
+      +'<button class="th-delete" onclick="event.stopPropagation();deleteThread('+jid(c.otherUid)+')" title="Delete chat">✕</button>'
       +'</div>';
   }).join('');
+}
+
+function deleteThread(id){
+  id=String(id);
+  if(!db||!myUid) return;
+  if(!confirm('Delete this conversation? This cannot be undone.')) return;
+  var cid=convId(myUid,id);
+  // Delete all messages in the subcollection first, then the conversation doc
+  db.collection('conversations').doc(cid).collection('messages').get().then(function(snap){
+    var batch=db.batch();
+    snap.forEach(function(doc){batch.delete(doc.ref);});
+    return batch.commit();
+  }).then(function(){
+    return db.collection('conversations').doc(cid).delete();
+  }).then(function(){
+    if(String(activeThread)===id){
+      activeThread=null;
+      var area=document.getElementById('chat-area');
+      if(area) area.innerHTML='<div class="chat-empty"><div style="font-size:32px">💬</div><div>Select a conversation</div></div>';
+    }
+    // Also reset match state so Connect button reappears
+    delete matchStates[id];
+    toast('Conversation deleted.');
+  }).catch(function(e){toast('Could not delete: '+((e&&e.message)||e));});
 }
 
 function openThread(id){
