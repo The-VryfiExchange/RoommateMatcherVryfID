@@ -255,6 +255,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 2
 .msg-time{font-size:10px;color:var(--text3);margin-bottom:2px;}
 .msg-row.mine .msg-time{text-align:right;}
 .system-msg{text-align:center;font-size:11px;color:var(--text3);padding:3px 0;}
+.msg-date-sep{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);padding:12px 0 6px;}
 .chat-input-row{padding:14px 22px;border-top:1px solid var(--border2);display:flex;gap:8px;background:var(--surface);}
 .chat-input{flex:1;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;}
 .chat-input:focus{border-color:var(--text3);}
@@ -1593,6 +1594,17 @@ function shareLink(){
 
 /* ── MESSAGES (real-time, Firestore) ── */
 function fmtTime(d){const h=d.getHours(),m=d.getMinutes();return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h>=12?'PM':'AM');}
+function fmtDate(d){
+  var now=new Date();var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var isToday=d.toDateString()===now.toDateString();
+  var yest=new Date(now);yest.setDate(yest.getDate()-1);
+  var isYesterday=d.toDateString()===yest.toDateString();
+  if(isToday) return 'Today';
+  if(isYesterday) return 'Yesterday';
+  var sameYear=d.getFullYear()===now.getFullYear();
+  return months[d.getMonth()]+' '+d.getDate()+(sameYear?'':' '+d.getFullYear());
+}
+function fmtDateTime(d){return fmtDate(d)+' · '+fmtTime(d);}
 
 /* deterministic conversation id from the two participants */
 function convId(a,b){return [String(a),String(b)].sort().join('__');}
@@ -1722,10 +1734,17 @@ function openThread(id){
 function renderRealMessages(id,msgs){
   const el=document.getElementById('chat-msgs-'+id); if(!el) return;
   if(!msgs.length){el.innerHTML='<div class="system-msg">No messages yet — say hello 👋</div>';return;}
+  var lastDate='';
   el.innerHTML=msgs.map(function(msg){
     const mine=msg.from===myUid;
-    const t=(msg.createdAt&&msg.createdAt.toDate)?fmtTime(msg.createdAt.toDate()):'';
-    return '<div class="msg-row '+(mine?'mine':'theirs')+'"><div>'
+    const d=(msg.createdAt&&msg.createdAt.toDate)?msg.createdAt.toDate():null;
+    const t=d?fmtTime(d):'';
+    var dateSep='';
+    if(d){
+      var dayStr=fmtDate(d);
+      if(dayStr!==lastDate){lastDate=dayStr;dateSep='<div class="msg-date-sep">'+dayStr+'</div>';}
+    }
+    return dateSep+'<div class="msg-row '+(mine?'mine':'theirs')+'"><div>'
       +(!mine?'<div class="msg-time">'+t+'</div>':'')
       +'<div class="msg-bubble">'+esc(msg.text||'')+'</div>'
       +(mine?'<div class="msg-time">'+t+'</div>':'')
